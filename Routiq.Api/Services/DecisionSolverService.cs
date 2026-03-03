@@ -84,16 +84,48 @@ public class DecisionSolverService
     }
 
     // ── Candidate destinations to evaluate ──
-    // Using a curated list with IATA codes and country codes for visa lookups
-    private static readonly List<(string Code, string City, string Country, string CountryCode)> CandidateDestinations = new()
+    // Expanded list: budget → mid-range → premium → long-haul across all continents
+    private static readonly List<(string Code, string City, string Country, string CountryCode, int PrestigeScore)> CandidateDestinations = new()
     {
-        ("SIN", "Singapore", "Singapore", "SG"),
-        ("GYD", "Baku", "Azerbaijan", "AZ"),
-        ("SJJ", "Sarajevo", "Bosnia & Herzegovina", "BA"),
-        ("CMN", "Casablanca", "Morocco", "MA"),
-        ("BKK", "Bangkok", "Thailand", "TH"),
-        ("TBS", "Tbilisi", "Georgia", "GE"),
-        ("KUL", "Kuala Lumpur", "Malaysia", "MY"),
+        // Budget / Short-haul
+        ("TBS", "Tbilisi",       "Georgia",                 "GE", 40),
+        ("GYD", "Baku",          "Azerbaijan",              "AZ", 42),
+        ("SJJ", "Sarajevo",      "Bosnia & Herzegovina",    "BA", 45),
+        ("CMN", "Casablanca",    "Morocco",                 "MA", 50),
+        ("SOF", "Sofia",         "Bulgaria",                "BG", 43),
+        ("BEG", "Belgrade",      "Serbia",                  "RS", 46),
+
+        // Mid-range Asia
+        ("SIN", "Singapore",     "Singapore",               "SG", 75),
+        ("BKK", "Bangkok",       "Thailand",                "TH", 68),
+        ("KUL", "Kuala Lumpur",  "Malaysia",                "MY", 62),
+        ("HAN", "Hanoi",         "Vietnam",                 "VN", 60),
+        ("DPS", "Bali",          "Indonesia",               "ID", 72),
+        ("CEB", "Cebu",          "Philippines",             "PH", 55),
+
+        // Middle East
+        ("DXB", "Dubai",         "UAE",                     "AE", 82),
+        ("DOH", "Doha",          "Qatar",                   "QA", 78),
+
+        // Premium Europe
+        ("CDG", "Paris",         "France",                  "FR", 92),
+        ("BCN", "Barcelona",     "Spain",                   "ES", 85),
+        ("LHR", "London",        "United Kingdom",          "GB", 90),
+        ("FCO", "Rome",          "Italy",                   "IT", 88),
+
+        // Long-haul Premium
+        ("NRT", "Tokyo",         "Japan",                   "JP", 95),
+        ("ICN", "Seoul",         "South Korea",             "KR", 80),
+        ("JFK", "New York",      "United States",           "US", 93),
+
+        // Americas
+        ("MEX", "Mexico City",   "Mexico",                  "MX", 65),
+        ("EZE", "Buenos Aires",  "Argentina",               "AR", 70),
+        ("BOG", "Bogotá",        "Colombia",                "CO", 58),
+
+        // Africa / Oceania
+        ("CPT", "Cape Town",     "South Africa",            "ZA", 74),
+        ("AKL", "Auckland",      "New Zealand",             "NZ", 76),
     };
 
     /// <summary>
@@ -115,7 +147,7 @@ public class DecisionSolverService
         var scoredCandidates = new List<CandidateResult>();
         var eliminated = new Dictionary<string, string>();
 
-        foreach (var (code, city, country, countryCode) in CandidateDestinations)
+        foreach (var (code, city, country, countryCode, _) in CandidateDestinations)
         {
             // Skip if any member's origin IS the destination
             if (members.Any(m => m.Origin.Equals(code, StringComparison.OrdinalIgnoreCase)))
@@ -403,16 +435,25 @@ public class DecisionSolverService
             };
         }
 
-        // Parse max budget roughly
+        // Parse max budget — expanded tiers
         int maxBudget = int.MaxValue;
         if (request.BudgetLimit == "< $500") maxBudget = 500;
         else if (request.BudgetLimit == "< $1000") maxBudget = 1000;
         else if (request.BudgetLimit == "< $1500") maxBudget = 1500;
+        else if (request.BudgetLimit == "< $3000") maxBudget = 3000;
+        else if (request.BudgetLimit == "< $5000") maxBudget = 5000;
+
+        // ── Determine adaptive scoring weights based on budget tier ──
+        double wBudget, wFlight, wVisa, wPrestige;
+        if (maxBudget <= 500) { wBudget = 0.55; wFlight = 0.30; wVisa = 0.10; wPrestige = 0.05; }
+        else if (maxBudget <= 1500) { wBudget = 0.45; wFlight = 0.25; wVisa = 0.15; wPrestige = 0.15; }
+        else if (maxBudget <= 3000) { wBudget = 0.30; wFlight = 0.20; wVisa = 0.15; wPrestige = 0.35; }
+        else { wBudget = 0.20; wFlight = 0.10; wVisa = 0.15; wPrestige = 0.55; }
 
         var scoredCandidates = new List<CandidateResult>();
         var eliminated = new Dictionary<string, string>();
 
-        foreach (var (code, city, country, countryCode) in CandidateDestinations)
+        foreach (var (code, city, country, countryCode, prestigeScore) in CandidateDestinations)
         {
             var region = GetRegionForCountryCode(countryCode);
 
@@ -465,7 +506,7 @@ public class DecisionSolverService
             BudgetConsistencyService.BudgetResult budgetResult;
             try
             {
-                budgetResult = _budget.Analyse(feasibility.EstimatedCostUsd, maxBudget == int.MaxValue ? 1500 : maxBudget);
+                budgetResult = _budget.Analyse(feasibility.EstimatedCostUsd, maxBudget == int.MaxValue ? 5000 : maxBudget);
             }
             catch (Exception ex)
             {
@@ -493,19 +534,25 @@ public class DecisionSolverService
                 BudgetPercentUsed = budgetResult.PercentageUsed
             };
 
-            // MCP #3: Time Overlap (Re-purposed for single user flight time logic)
-            // Instead of group overlap, we'll score the flight time to prioritize shorter flights
+            // ── Adaptive Composite Scoring ──
             double flightTimeScore = Math.Max(0, 100 - (feasibility.FlightTimeMinutes / 12.0));
             double visaScore = feasibility.VisaRequired ? 50.0 : 100.0;
+            double normalizedPrestige = prestigeScore; // Already 0–100
 
-            // Dynamic rule engine behavior
-            double composite = (0.5 * budgetResult.Score) + (0.3 * flightTimeScore) + (0.2 * visaScore);
+            double composite = (wBudget * budgetResult.Score)
+                             + (wFlight * flightTimeScore)
+                             + (wVisa * visaScore)
+                             + (wPrestige * normalizedPrestige);
 
-            // Boost certain regions based on Passport for demo
+            // Passport-based boosts
             if (passports.Contains("AU") && (region == "Asia" || region == "Oceania"))
-            {
-                composite += 15; // Emphasize closer ones for Australians
-            }
+                composite += 8;
+            if (passports.Contains("TR") && region == "Europe")
+                composite += 5;
+
+            // ── Discovery Bias: ±3 jitter for variety ──
+            var jitter = (Random.Shared.NextDouble() - 0.5) * 6.0;
+            composite += jitter;
 
             scoredCandidates.Add(new CandidateResult
             {
@@ -532,7 +579,7 @@ public class DecisionSolverService
         }
 
         var winner = ranked[0];
-        var alternatives = ranked.Skip(1).Take(2).ToList();
+        var alternatives = ranked.Skip(1).Take(3).ToList();
 
         // Single-user explanation
         var lines = new List<string>();
@@ -544,6 +591,9 @@ public class DecisionSolverService
             lines.Add($"🛂 Visa-free entry based on your {passports[0]} passport.");
 
         lines.Add($"💸 Estimated round-trip flight from {origin} takes {winner.AvgFlightTime} and costs ${winner.AvgCostUsd}.");
+
+        var weightLabel = maxBudget <= 500 ? "Budget-Optimized" : maxBudget <= 1500 ? "Balanced" : maxBudget <= 3000 ? "Experience-Focused" : "Luxury/Prestige";
+        lines.Add($"⚖️ Scoring mode: {weightLabel} (Budget={wBudget:P0}, Flight={wFlight:P0}, Visa={wVisa:P0}, Prestige={wPrestige:P0}).");
 
         return new DecisionResult
         {
@@ -559,9 +609,13 @@ public class DecisionSolverService
     {
         return countryCode switch
         {
-            "SG" or "TH" or "MY" or "AZ" => "Asia",
-            "BA" or "GE" => "Europe",
-            "MA" => "Africa",
+            "SG" or "TH" or "MY" or "VN" or "ID" or "PH" or "JP" or "KR" => "Asia",
+            "AZ" or "GE" or "AE" or "QA" => "Asia",
+            "BA" or "BG" or "RS" or "FR" or "ES" or "GB" or "IT" => "Europe",
+            "MA" or "ZA" => "Africa",
+            "US" or "MX" or "CO" => "North America",
+            "AR" => "South America",
+            "NZ" => "Oceania",
             _ => "Other"
         };
     }

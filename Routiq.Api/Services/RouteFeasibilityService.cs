@@ -93,50 +93,129 @@ public class RouteFeasibilityService
     private static (int minutes, int costUsd) EstimateFlightData(string origin, string destination)
     {
         // Known route estimates (great-circle-based approximations)
+        // Covers IST, BER, SYD origins to all 28 candidate destinations
         var routes = new Dictionary<string, (int min, int cost)>(StringComparer.OrdinalIgnoreCase)
         {
-            // SIN routes
-            ["SYD-SIN"] = (500, 700),
-            ["MEL-SIN"] = (510, 720),
+            // ── Budget / Short-haul ──
+            // TBS (Tbilisi)
+            ["IST-TBS"] = (110, 180),
+            ["BER-TBS"] = (280, 350),
+            ["SYD-TBS"] = (1100, 1400),
+            // GYD (Baku)
+            ["IST-GYD"] = (170, 150),
+            ["BER-GYD"] = (375, 450),
+            ["SYD-GYD"] = (1220, 1500),
+            // SJJ (Sarajevo)
+            ["IST-SJJ"] = (120, 200),
+            ["BER-SJJ"] = (130, 250),
+            ["SYD-SJJ"] = (1350, 1800),
+            // CMN (Casablanca)
+            ["IST-CMN"] = (315, 450),
+            ["BER-CMN"] = (270, 380),
+            ["SYD-CMN"] = (1560, 2100),
+            // SOF (Sofia)
+            ["IST-SOF"] = (75, 120),
+            ["BER-SOF"] = (150, 200),
+            ["SYD-SOF"] = (1200, 1500),
+            // BEG (Belgrade)
+            ["IST-BEG"] = (120, 180),
+            ["BER-BEG"] = (110, 170),
+            ["SYD-BEG"] = (1250, 1550),
+
+            // ── Mid-range Asia ──
+            // SIN (Singapore)
             ["IST-SIN"] = (550, 850),
             ["BER-SIN"] = (735, 1100),
-            ["FRA-SIN"] = (730, 1050),
+            ["SYD-SIN"] = (500, 700),
+            // BKK (Bangkok)
+            ["IST-BKK"] = (570, 750),
+            ["BER-BKK"] = (640, 900),
+            ["SYD-BKK"] = (540, 600),
+            // KUL (Kuala Lumpur)
+            ["IST-KUL"] = (600, 800),
+            ["BER-KUL"] = (720, 1050),
+            ["SYD-KUL"] = (480, 650),
+            // HAN (Hanoi)
+            ["IST-HAN"] = (540, 700),
+            ["BER-HAN"] = (620, 850),
+            ["SYD-HAN"] = (510, 580),
+            // DPS (Bali)
+            ["IST-DPS"] = (720, 950),
+            ["BER-DPS"] = (810, 1200),
+            ["SYD-DPS"] = (360, 450),
+            // CEB (Cebu)
+            ["IST-CEB"] = (660, 900),
+            ["BER-CEB"] = (750, 1100),
+            ["SYD-CEB"] = (450, 550),
+            // Inter-Asia
             ["BKK-SIN"] = (150, 200),
             ["KUL-SIN"] = (60, 80),
 
-            // SJJ (Sarajevo) routes
-            ["SYD-SJJ"] = (1350, 1800),
-            ["MEL-SJJ"] = (1380, 1850),
-            ["IST-SJJ"] = (120, 200),
-            ["BER-SJJ"] = (130, 250),
-            ["FRA-SJJ"] = (140, 280),
+            // ── Middle East ──
+            // DXB (Dubai)
+            ["IST-DXB"] = (240, 350),
+            ["BER-DXB"] = (360, 500),
+            ["SYD-DXB"] = (840, 1100),
+            // DOH (Doha)
+            ["IST-DOH"] = (210, 320),
+            ["BER-DOH"] = (370, 520),
+            ["SYD-DOH"] = (810, 1050),
 
-            // GYD (Baku) routes
-            ["SYD-GYD"] = (1220, 1500),
-            ["MEL-GYD"] = (1240, 1550),
-            ["IST-GYD"] = (170, 150),
-            ["BER-GYD"] = (375, 450),
-            ["FRA-GYD"] = (365, 420),
+            // ── Premium Europe ──
+            // CDG (Paris)
+            ["IST-CDG"] = (210, 320),
+            ["BER-CDG"] = (110, 180),
+            ["SYD-CDG"] = (1380, 1800),
+            // BCN (Barcelona)
+            ["IST-BCN"] = (240, 350),
+            ["BER-BCN"] = (155, 220),
+            ["SYD-BCN"] = (1400, 1850),
+            // LHR (London)
+            ["IST-LHR"] = (230, 300),
+            ["BER-LHR"] = (110, 160),
+            ["SYD-LHR"] = (1440, 1900),
+            // FCO (Rome)
+            ["IST-FCO"] = (150, 250),
+            ["BER-FCO"] = (130, 190),
+            ["SYD-FCO"] = (1350, 1750),
 
-            // CMN (Casablanca) routes
-            ["SYD-CMN"] = (1560, 2100),
-            ["MEL-CMN"] = (1580, 2150),
-            ["IST-CMN"] = (315, 450),
-            ["BER-CMN"] = (270, 380),
-            ["FRA-CMN"] = (230, 350),
+            // ── Long-haul Premium ──
+            // NRT (Tokyo)
+            ["IST-NRT"] = (660, 1200),
+            ["BER-NRT"] = (660, 1050),
+            ["SYD-NRT"] = (570, 900),
+            // ICN (Seoul)
+            ["IST-ICN"] = (600, 1100),
+            ["BER-ICN"] = (620, 1000),
+            ["SYD-ICN"] = (540, 850),
+            // JFK (New York)
+            ["IST-JFK"] = (630, 1300),
+            ["BER-JFK"] = (540, 900),
+            ["SYD-JFK"] = (1260, 2200),
 
-            // BKK (Bangkok) routes
-            ["SYD-BKK"] = (540, 600),
-            ["MEL-BKK"] = (560, 620),
-            ["IST-BKK"] = (570, 750),
-            ["BER-BKK"] = (640, 900),
-            ["FRA-BKK"] = (630, 880),
+            // ── Americas ──
+            // MEX (Mexico City)
+            ["IST-MEX"] = (780, 1500),
+            ["BER-MEX"] = (690, 1200),
+            ["SYD-MEX"] = (960, 1800),
+            // EZE (Buenos Aires)
+            ["IST-EZE"] = (900, 1700),
+            ["BER-EZE"] = (810, 1400),
+            ["SYD-EZE"] = (780, 1500),
+            // BOG (Bogotá)
+            ["IST-BOG"] = (750, 1400),
+            ["BER-BOG"] = (660, 1100),
+            ["SYD-BOG"] = (1080, 2000),
 
-            // TBS (Tbilisi) routes
-            ["SYD-TBS"] = (1100, 1400),
-            ["IST-TBS"] = (110, 180),
-            ["BER-TBS"] = (280, 350),
-            ["FRA-TBS"] = (270, 340),
+            // ── Africa / Oceania ──
+            // CPT (Cape Town)
+            ["IST-CPT"] = (660, 1100),
+            ["BER-CPT"] = (720, 1200),
+            ["SYD-CPT"] = (840, 1350),
+            // AKL (Auckland)
+            ["IST-AKL"] = (1080, 1800),
+            ["BER-AKL"] = (1140, 1900),
+            ["SYD-AKL"] = (210, 350),
         };
 
         var key = $"{origin.ToUpperInvariant()}-{destination.ToUpperInvariant()}";

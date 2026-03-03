@@ -11,15 +11,14 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { TravelGroupsPage } from './pages/TravelGroupsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AppLayout } from './components/AppLayout';
-import RouteDetailsModal from './components/RouteDetailsModal';
-import { generateRoutes, saveRoute } from './api/routiqApi';
-import type { RouteRequest, RouteResponse, RouteOption, RouteStop, EliminationSummary, BudgetBracket, RegionPreference } from './types';
+import { routiqApi } from './api/routiqApi';
+import type { BudgetBracket, RegionPreference } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactCountryFlag from 'react-country-flag';
 import { countryNames } from './utils/countryMapper';
 import {
   Loader2, Wallet, Calendar, MapPin, CheckSquare,
-  ChevronDown, ChevronRight, XCircle, CheckCircle2, Zap, AlertTriangle, Clock, Map
+  ChevronDown, XCircle, Zap, AlertTriangle, Globe2, DollarSign, Plane
 } from 'lucide-react';
 
 // PASSPORT_OPTIONS removed — citizenship is account-level, set in Profile/Registration
@@ -45,19 +44,50 @@ const REGION_OPTIONS: { value: RegionPreference; label: string }[] = [
   { value: 'Caribbean', label: '🏝️ Caribbean' },
 ];
 
-const REASON_META: Record<string, { label: string; color: string; icon: React.FC<{ size?: number; className?: string }> }> = {
-  VisaRequired: { label: 'Visa Required', color: 'red', icon: XCircle },
-  BudgetInsufficient: { label: 'Budget Too Low', color: 'orange', icon: Wallet },
-  DaysInsufficient: { label: 'Not Enough Days', color: 'yellow', icon: Clock },
-  BannedDestination: { label: 'Entry Banned', color: 'red', icon: AlertTriangle },
-  RegionMismatch: { label: 'Region Mismatch', color: 'slate', icon: Map },
-};
+// ── Orchestrator Types ──
 
-const COST_LEVEL_BADGE: Record<string, string> = {
-  Low: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
-  Medium: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
-  High: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
-};
+interface OrchestratorTicket {
+  memberName: string; origin: string; destination: string;
+  flightTime: string; costUsd: number; visaType: string; visaRequired: boolean;
+}
+interface OrchestratorCandidate {
+  destinationCode: string; city: string; country: string;
+  compositeScore: number; avgCostUsd: number; avgFlightTime: string;
+  memberTickets: OrchestratorTicket[];
+}
+interface OrchestratorResult {
+  winner: OrchestratorCandidate | null;
+  alternatives: OrchestratorCandidate[];
+  explanation: string;
+  eliminatedReasons: Record<string, string>;
+}
+
+// ── Mapping helpers: Dashboard form → Discover endpoint params ──
+
+function mapBudgetToDiscover(_bracket: BudgetBracket, totalUsd: number): string {
+  if (totalUsd <= 500) return '< $500';
+  if (totalUsd <= 1000) return '< $1000';
+  if (totalUsd <= 1500) return '< $1500';
+  if (totalUsd <= 3000) return '< $3000';
+  if (totalUsd <= 5000) return '< $5000';
+  return 'Any';
+}
+
+function mapDurationToDiscover(days: number): string {
+  if (days <= 4) return '1–4 days';
+  if (days <= 7) return '5–7 days';
+  return '8+ days';
+}
+
+function mapRegionToDiscover(pref: RegionPreference): string {
+  const regionMap: Record<string, string> = {
+    SoutheastAsia: 'Asia', EasternEurope: 'Europe', Balkans: 'Europe',
+    NorthAfrica: 'Africa', CentralAsia: 'Asia', MiddleEast: 'Asia',
+    LatinAmerica: 'South America', CentralAmerica: 'North America',
+    Caribbean: 'North America',
+  };
+  return regionMap[pref] || 'All';
+}
 
 // ── Sub-components ──
 
@@ -88,203 +118,35 @@ function SelectField({ value, onChange, children, id }: {
   );
 }
 
-function RouteOptionCard({
-  option, index, onSave, saved
-}: {
-  option: RouteOption; index: number; onSave: (option: RouteOption) => Promise<void>; saved: boolean;
-}) {
-  const colors = ['from-blue-600 to-indigo-600', 'from-teal-600 to-emerald-600', 'from-violet-600 to-purple-600', 'from-rose-600 to-orange-500'];
-  const gradient = colors[index % colors.length];
-  const [saving, setSaving] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const trip = { destination: option.stops.length > 0 ? option.stops[0].city : 'Tokyo', isSaved: saved };
-
-  const handleClick = async () => {
-    if (saved || saving) return;
-    setSaving(true);
-    try {
-      await onSave(option);
-    } catch {
-      // Ignored
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08 }}
-      className="bg-white dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/60 rounded-2xl overflow-hidden shadow-sm"
-    >
-      {/* Header */}
-      <div className={`bg-gradient-to-r ${gradient} px-2.5 py-1.5`}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h3 className="text-white font-bold text-xs">{option.routeName}</h3>
-            <p className="text-white/80 text-[10px] mt-0.5 leading-relaxed">{option.selectionReason}</p>
-          </div>
-          <span className="shrink-0 bg-white/20 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap mt-0.5">
-            {option.estimatedBudgetRange}
-          </span>
-        </div>
-      </div>
-
-      {/* Stops */}
-      <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
-        {option.stops.map((stop, si) => (
-          <StopRow key={si} stop={stop} index={si} />
-        ))}
-      </div>
-
-      {/* FORCE-SHRUNK FOOTER - MATCHES RouteCard.tsx */}
-      <div className="mt-2 h-10 border-t border-gray-200 dark:border-gray-700/50 flex justify-end items-center bg-transparent px-3">
-
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsDetailsOpen(true);
-          }}
-          className="h-7 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-[11px] font-black uppercase tracking-widest rounded transition-all border border-gray-300 dark:border-gray-600 shadow-sm flex items-center"
-        >
-          VIEW DETAILS &rarr;
-        </button>
-
-        {isDetailsOpen && (
-          <RouteDetailsModal trip={trip} onClose={() => setIsDetailsOpen(false)} onSave={() => handleClick()} />
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
-function StopRow({ stop, index }: { stop: RouteStop; index: number }) {
-  return (
-    <div className="flex items-center justify-between py-2 mt-2 px-2.5">
-      {/* Left side: Destination Info */}
-      <div className="flex items-center gap-3">
-        <span className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center text-xs font-bold">{index + 1}</span>
-        <span className="text-lg"><ReactCountryFlag countryCode={stop.countryCode} svg style={{ width: '1.2em', height: '1.2em', borderRadius: '2px' }} title={stop.countryCode} /></span>
-        <span className="font-bold text-gray-900 dark:text-gray-100">{stop.city}</span>
-        <span className="text-[10px] text-gray-500 tracking-widest uppercase ml-1">{stop.country}</span>
-        <span className={`text-[9px] px-1.5 py-0.5 rounded border font-bold ml-2 ${COST_LEVEL_BADGE[stop.costLevel] ?? 'bg-gray-100 dark:bg-gray-800 text-gray-600 border-gray-200'}`}>{stop.costLevel}</span>
-      </div>
-
-      {/* Right side: Core Metrics */}
-      <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 font-medium hidden sm:flex">
-        <span className="flex items-center gap-1">🗓️ {stop.recommendedDays} Days</span>
-        <span className="text-gray-300 dark:text-gray-700">|</span>
-        <span className="flex items-center gap-1">💰 {stop.dailyBudgetRange}</span>
-        <span className="text-gray-300 dark:text-gray-700">|</span>
-        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">{stop.visaStatus}</span>
-      </div>
-    </div>
-  );
-}
-
-function EliminationCard({ elim, index }: { elim: EliminationSummary; index: number }) {
-  const [open, setOpen] = useState(false);
-  const meta = REASON_META[elim.reason] ?? { label: elim.reason, color: 'gray', icon: XCircle };
-  const Icon = meta.icon;
-
-  const colorMap: Record<string, string> = {
-    red: 'bg-red-50 dark:bg-red-500/10 border-red-100 dark:border-red-500/20',
-    orange: 'bg-orange-50 dark:bg-orange-500/10 border-orange-100 dark:border-orange-500/20',
-    yellow: 'bg-yellow-50 dark:bg-yellow-500/10 border-yellow-100 dark:border-yellow-500/20',
-    slate: 'bg-slate-50 dark:bg-slate-500/10 border-slate-200 dark:border-slate-500/20',
-    gray: 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700',
-  };
-
-  const iconColorMap: Record<string, string> = {
-    red: 'text-red-500', orange: 'text-orange-500', yellow: 'text-yellow-500',
-    slate: 'text-slate-500', gray: 'text-gray-400',
-  };
-
-  const badgeColorMap: Record<string, string> = {
-    red: 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300',
-    orange: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300',
-    yellow: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-300',
-    slate: 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300',
-    gray: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -6 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.04 }}
-      className={`border rounded-xl overflow-hidden ${colorMap[meta.color]}`}
-    >
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left"
-        aria-expanded={open}
-      >
-        <Icon size={12} className={`shrink-0 ${iconColorMap[meta.color]}`} />
-        <div className="flex-1 min-w-0">
-          <span className="text-xs font-bold text-gray-900 dark:text-white">
-            {elim.city}, <span className="text-gray-500 text-[10px] uppercase font-semibold">{elim.country}</span>
-          </span>
-        </div>
-        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-sm shrink-0 uppercase tracking-wide ${badgeColorMap[meta.color]}`}>
-          {meta.label}
-        </span>
-        <ChevronRight size={12} className={`shrink-0 text-gray-400 transition-transform ${open ? 'rotate-90' : ''}`} />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <p className="px-2.5 pb-1.5 pl-8 text-[10px] text-gray-600 dark:text-gray-300 leading-snug">
-              {elim.explanation}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
-  );
-}
-
 // ── Dashboard ──
 
 function Dashboard() {
   useTheme();
   const { user } = useAuth();
-  // Passports are account-level — read from AuthContext, never editable here
   const citizenPassports = Array.isArray(user?.passports) ? user.passports : ['TR'];
 
-  const [form, setForm] = useState<RouteRequest>({
+  const [form, setForm] = useState({
     passports: citizenPassports,
-    budgetBracket: 'Budget',
+    budgetBracket: 'Budget' as BudgetBracket,
     totalBudgetUsd: 1500,
     durationDays: 10,
-    regionPreference: 'Any',
+    regionPreference: 'Any' as RegionPreference,
     hasSchengenVisa: false,
     hasUsVisa: false,
     hasUkVisa: false,
   });
 
-  // Hydrate local form state if AuthContext sets/loads passport array late
   useEffect(() => {
     if (Array.isArray(user?.passports) && user.passports.length > 0) {
       setForm(prev => ({ ...prev, passports: user.passports }));
     }
   }, [user?.passports]);
 
-  const [result, setResult] = useState<RouteResponse | null>(null);
+  const [result, setResult] = useState<OrchestratorResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Track saved route option names to show per-card saved state
-  const [savedRouteNames, setSavedRouteNames] = useState<Set<string>>(new Set());
 
-  const setField = <K extends keyof RouteRequest>(key: K, value: RouteRequest[K]) =>
+  const setField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm(prev => ({ ...prev, [key]: value }));
 
   const handleGenerate = async () => {
@@ -292,48 +154,25 @@ function Dashboard() {
     setLoading(true);
     setError(null);
     setResult(null);
-    setSavedRouteNames(new Set());
     try {
-      const data = await generateRoutes(form);
-      setResult(data);
+      const response = await routiqApi.post('/decision/discover', {
+        passport: form.passports[0] || 'TR',
+        budgetLimit: mapBudgetToDiscover(form.budgetBracket, form.totalBudgetUsd),
+        duration: mapDurationToDiscover(form.durationDays),
+        region: mapRegionToDiscover(form.regionPreference),
+      });
+      setResult(response.data);
     } catch (err) {
       console.error(err);
-      setError('Could not reach the route engine. Make sure the backend is running.');
+      setError('Could not reach the orchestrator. Make sure the backend is running.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSave = async (option: RouteOption) => {
-    const payload = {
-      userId: 1,
-      routeName: option.routeName,
-      passports: form.passports,
-      budgetBracket: form.budgetBracket,
-      totalBudgetUsd: form.totalBudgetUsd,
-      durationDays: form.durationDays,
-      regionPreference: form.regionPreference,
-      hasSchengenVisa: form.hasSchengenVisa,
-      hasUsVisa: form.hasUsVisa,
-      hasUkVisa: form.hasUkVisa,
-      selectionReason: option.selectionReason,
-      stops: option.stops.map((s, i) => ({
-        city: s.city,
-        countryCode: s.countryCode,
-        recommendedDays: s.recommendedDays,
-        stopOrder: i + 1,
-        costLevel: s.costLevel,
-        stopReason: s.stopReason,
-      })),
-    };
-    console.log('[routiq] Save Route Payload:', JSON.stringify(payload, null, 2));
-    await saveRoute(payload);
-    setSavedRouteNames(prev => new Set([...prev, option.routeName]));
-  };
-
   const hasResult = result !== null;
-  const hasOptions = hasResult && result.options.length > 0;
-  const hasEliminations = hasResult && result.eliminations.length > 0;
+  const hasWinner = hasResult && result.winner?.destinationCode;
+  const hasEliminations = hasResult && Object.keys(result.eliminatedReasons).length > 0;
 
   return (
     <main className="max-w-[1600px] w-[96%] mx-auto px-4 sm:px-6 py-4 min-h-[calc(100vh-4rem)] xl:h-[calc(100vh-4rem)] flex flex-col">
@@ -547,74 +386,154 @@ function Dashboard() {
                 {!loading && hasResult && (
                   <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
 
-                    {/* ── Route Options ── */}
-                    {hasOptions ? (
-                      <section>
-                        <div className="flex items-center gap-2 mb-4 flex-wrap">
-                          <CheckCircle2 size={16} className="text-emerald-500" />
-                          <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">
-                            Generated Routes
-                          </h2>
-                          <span className="text-[10px] uppercase tracking-wide bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-sm">
-                            {result!.options.length} option{result!.options.length > 1 ? 's' : ''}
-                          </span>
-                          <span className="flex items-center gap-1.5 ml-auto">
-                            {Array.isArray(form.passports) && form.passports.map(c => {
-                              if (!c) return null;
-                              const name = countryNames[c] || c;
-                              return (
-                                <span key={c} className="inline-flex items-center justify-center gap-1">
-                                  <ReactCountryFlag countryCode={c} svg style={{ width: '1.2em', height: '1.2em', borderRadius: '2px', display: 'flex', alignItems: 'center' }} title={name} />
-                                  <span className="mt-0.5 text-[10px] uppercase font-bold text-gray-700 dark:text-gray-300">{c}</span>
-                                </span>
-                              )
-                            })}
-                          </span>
+                    {/* ── Orchestrator Analysis ── */}
+                    <section className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-500/10 border border-blue-100 dark:border-blue-500/20 rounded-2xl p-5">
+                      <div className="flex gap-4 items-start">
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                          <Globe2 size={20} />
                         </div>
-                        <div className="space-y-2">
-                          {result!.options.map((opt, i) => (
-                            <RouteOptionCard
-                              key={i}
-                              option={opt}
-                              index={i}
-                              onSave={handleSave}
-                              saved={savedRouteNames.has(opt.routeName)}
-                            />
-                          ))}
+                        <div className="flex-1">
+                          <h3 className="text-sm font-extrabold text-gray-900 dark:text-white mb-2 uppercase tracking-wide">Orchestrator Analysis</h3>
+                          <div className="text-xs text-gray-700 dark:text-gray-300 space-y-1 whitespace-pre-line bg-white/50 dark:bg-black/20 p-3 rounded-xl border border-blue-100/50 dark:border-blue-500/10 leading-relaxed">
+                            {result!.explanation}
+                          </div>
                         </div>
-                      </section>
+                      </div>
+                    </section>
+
+                    {/* ── Winner / No Results ── */}
+                    {hasWinner ? (
+                      <>
+                        {/* Winner Card */}
+                        <section>
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xl">🏆</span>
+                            <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">Logical Winner</h2>
+                          </div>
+                          <div className="bg-white dark:bg-gray-800/60 border-2 border-green-500/30 dark:border-green-500/40 rounded-2xl overflow-hidden shadow-sm relative">
+                            <div className="absolute -right-16 -top-16 w-48 h-48 bg-green-400/10 dark:bg-green-500/10 rounded-full blur-3xl pointer-events-none" />
+                            <div className="p-5 relative z-10">
+                              <div className="flex flex-col md:flex-row justify-between gap-5">
+                                <div className="flex-1">
+                                  <div className="inline-flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider mb-2">
+                                    Top Match • Score: {result!.winner!.compositeScore}/100
+                                  </div>
+                                  <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2 tracking-tight">
+                                    {result!.winner!.city}, {result!.winner!.country}
+                                  </h3>
+                                  <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-gray-600 dark:text-gray-300">
+                                    <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700/50 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600/50">
+                                      <DollarSign size={14} className="text-green-500" /> ${result!.winner!.avgCostUsd} round-trip
+                                    </span>
+                                    <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700/50 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600/50">
+                                      <Plane size={14} className="text-blue-500" /> {result!.winner!.avgFlightTime} flight
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Ticket Data */}
+                                <div className="bg-gray-50 dark:bg-gray-800/80 rounded-xl p-4 min-w-[260px] border border-gray-100 dark:border-gray-700/50 shadow-sm">
+                                  <div className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-bold flex items-center justify-between">
+                                    Your Ticket Data
+                                    <Plane size={12} />
+                                  </div>
+                                  {result!.winner!.memberTickets.map((t, idx) => (
+                                    <div key={idx} className="space-y-1.5 mb-2">
+                                      <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-md shadow-sm border border-gray-100 dark:border-gray-800">
+                                        <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Route</span>
+                                        <span className="text-xs font-bold text-gray-900 dark:text-white">{t.origin} <span className="text-gray-400 mx-0.5">➔</span> {t.destination}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-md shadow-sm border border-gray-100 dark:border-gray-800">
+                                        <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Cost</span>
+                                        <span className="text-xs font-bold text-green-600">${t.costUsd}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-md shadow-sm border border-gray-100 dark:border-gray-800">
+                                        <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Visa</span>
+                                        <span className={`text-xs font-bold px-1.5 rounded ${t.visaRequired ? 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' : 'text-green-600 bg-green-50 dark:bg-green-500/10'}`}>
+                                          {t.visaType}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </section>
+
+                        {/* Alternatives */}
+                        {result!.alternatives.length > 0 && (
+                          <section>
+                            <div className="flex items-center gap-2 mb-3">
+                              <span className="text-xl">🥈</span>
+                              <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">Strong Alternatives</h2>
+                            </div>
+                            <div className="space-y-2">
+                              {result!.alternatives.map((alt, idx) => (
+                                <motion.div
+                                  key={idx}
+                                  initial={{ opacity: 0, y: 8 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: idx * 0.08 }}
+                                  className="bg-white dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/60 rounded-xl p-4 shadow-sm relative overflow-hidden group"
+                                >
+                                  <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50 group-hover:bg-blue-500 transition-colors" />
+                                  <div className="flex justify-between items-center pl-2">
+                                    <div>
+                                      <h4 className="font-extrabold text-gray-900 dark:text-white text-base">{alt.city}, {alt.country}</h4>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 flex gap-3 mt-1 font-medium">
+                                        <span className="flex items-center gap-1"><DollarSign size={12} className="text-green-500" />${alt.avgCostUsd}</span>
+                                        <span className="text-gray-300 dark:text-gray-600">•</span>
+                                        <span className="flex items-center gap-1"><Plane size={12} className="text-blue-500" />{alt.avgFlightTime}</span>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-xs font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded inline-block">Score: {alt.compositeScore}</div>
+                                      <div className="text-[10px] text-red-400 font-medium mt-0.5">−{(result!.winner!.compositeScore - alt.compositeScore).toFixed(1)} pts behind</div>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </div>
+                          </section>
+                        )}
+                      </>
                     ) : (
                       <section className="flex items-start gap-3 p-5 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 rounded-2xl">
                         <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">No viable routes found</p>
+                          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">No viable destinations found</p>
                           <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                            All destinations were eliminated by the engine's rules. See the explanations below.
+                            All destinations were eliminated by the engine. Check the orchestrator analysis above and try adjusting your budget or region.
                           </p>
                         </div>
                       </section>
                     )}
 
-                    {/* ── Why NOT Section ── */}
+                    {/* ── Dynamic Elimination ── */}
                     {hasEliminations && (
                       <section>
-                        <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-2 mb-3">
                           <XCircle size={16} className="text-red-400" />
                           <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">
-                            Why NOT These Destinations?
+                            Removed by Engine
                           </h2>
                           <span className="text-[10px] uppercase tracking-wide bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 font-bold px-2 py-0.5 rounded-sm">
-                            {result!.eliminations.length} eliminated
+                            {Object.keys(result!.eliminatedReasons).length} eliminated
                           </span>
                         </div>
-                        <div className="space-y-1.5">
-                          {result!.eliminations.map((elim, i) => (
-                            <EliminationCard key={i} elim={elim} index={i} />
-                          ))}
+                        <div className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-gray-900 border border-red-100 dark:border-red-500/20 rounded-xl overflow-hidden shadow-sm">
+                          <div className="divide-y divide-red-100 dark:divide-red-900/30">
+                            {Object.entries(result!.eliminatedReasons).map(([code, reason]) => (
+                              <div key={code} className="flex gap-3 text-xs p-3 hover:bg-red-50/50 dark:hover:bg-red-500/5 transition-colors">
+                                <span className="inline-flex items-center justify-center font-mono text-[10px] font-bold text-red-500 bg-red-100 dark:bg-red-500/20 w-9 h-6 rounded-md flex-shrink-0">
+                                  {code}
+                                </span>
+                                <span className="text-gray-700 dark:text-gray-300 leading-relaxed font-medium">{reason}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-3 text-center">
-                          Click any row to see the full engine explanation.
-                        </p>
                       </section>
                     )}
 
