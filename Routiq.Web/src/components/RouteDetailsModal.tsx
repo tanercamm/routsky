@@ -138,7 +138,12 @@ export default function RouteDetailsModal({ trip, onClose, onSave }: any) {
       </div>
 
       {isThyModalOpen && (
-        <LiveFlightModal destination={trip?.destination} onClose={() => setIsThyModalOpen(false)} />
+        <LiveFlightModal
+          destination={trip?.destinationCode || trip?.destination}
+          origin={trip?.ticketData?.origin}
+          ticketData={trip?.ticketData}
+          onClose={() => setIsThyModalOpen(false)}
+        />
       )}
     </div>
   );

@@ -2,16 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { routiqApi } from '../api/routiqApi';
 
-interface User {
-    id: number;
-    email: string;
-    name: string;
-    role: string;
-    avatarUrl?: string;
-    /** ISO-3166-1 alpha-2 codes for all citizenships, e.g. ["TR", "DE"] */
-    passports: string[];
-    origin?: string;
-}
+import type { User } from '../types';
 
 interface AuthContextType {
     user: User | null;
@@ -19,8 +10,8 @@ interface AuthContextType {
     login: (token: string, user: User) => void;
     logout: () => void;
     isAuthenticated: boolean;
-    /** Update the stored passports list (used from ProfilePage preferences) */
-    updateProfile: (data: { passports: string[], origin?: string }) => Promise<void>;
+    /** Update the user's preferences */
+    updateProfile: (data: Partial<User>) => Promise<void>;
     /** Update the user's avatar URL dynamically */
     setUserAvatar: (url: string | null) => void;
 }
@@ -132,17 +123,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         delete routiqApi.defaults.headers.common['Authorization'];
     };
 
-    const updateProfile = async (data: { passports: string[], origin?: string }) => {
+    const updateProfile = async (data: Partial<User>) => {
         try {
-            await routiqApi.put('/auth/profile', data);
+            // Need to merge passports since they are always required by the API
+            const updatePayload = {
+                passports: data.passports || user?.passports || ["TR"],
+                origin: data.origin !== undefined ? data.origin : (user?.origin || ""),
+                preferredCurrency: data.preferredCurrency !== undefined ? data.preferredCurrency : (user?.preferredCurrency || "USD"),
+                unitPreference: data.unitPreference !== undefined ? data.unitPreference : (user?.unitPreference || "Metric"),
+                travelStyle: data.travelStyle !== undefined ? data.travelStyle : (user?.travelStyle || "Comfort"),
+                notificationsEnabled: data.notificationsEnabled !== undefined ? data.notificationsEnabled : (user?.notificationsEnabled ?? true),
+                priceAlertsEnabled: data.priceAlertsEnabled !== undefined ? data.priceAlertsEnabled : (user?.priceAlertsEnabled ?? true)
+            };
+
+            await routiqApi.put('/auth/profile', updatePayload);
             setUser(prev => {
                 if (!prev) return prev;
-                const updated = { ...prev, passports: data.passports, origin: data.origin };
+                const updated = { ...prev, ...updatePayload };
                 localStorage.setItem('user', JSON.stringify(updated));
                 return updated;
             });
         } catch (err) {
             console.error("Failed to update profile:", err);
+            throw err;
         }
     };
 

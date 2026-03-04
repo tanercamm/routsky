@@ -74,3 +74,10 @@ export const runDecisionEngine = async (groupId: string) => {
     const response = await api.post('/decision/run', { groupId });
     return response.data;
 };
+
+// ── Analytics ──
+
+export const getAnalytics = async () => {
+    const response = await api.get('/analytics');
+    return response.data;
+};

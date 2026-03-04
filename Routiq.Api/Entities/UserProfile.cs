@@ -45,6 +45,16 @@ public class UserProfile
     /// <summary>Flight budget in USD. 0 = not set (engine uses $1500 default).</summary>
     public int Budget { get; set; } = 0;
 
+    // ── Settings & Preferences ──
+    [MaxLength(20)]
+    public string UnitPreference { get; set; } = "Metric";
+
+    [MaxLength(50)]
+    public string TravelStyle { get; set; } = "Comfort";
+
+    public bool NotificationsEnabled { get; set; } = true;
+    public bool PriceAlertsEnabled { get; set; } = true;
+
     // Navigation
     public ICollection<SavedRoute> SavedRoutes { get; set; } = new List<SavedRoute>();
 }

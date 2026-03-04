@@ -14,6 +14,33 @@ export type RegionPreference =
     | 'MiddleEast'
     | 'Caribbean';
 
+export type UnitPreference = 'Metric' | 'Imperial';
+export type TravelStyle = 'Shoestring' | 'Budget' | 'Comfort' | 'Luxury';
+
+export interface User {
+    id: number;
+    email: string;
+    name: string;
+    role: string;
+    avatarUrl?: string | null;
+    passports: string[];
+    origin: string;
+    preferredCurrency: string;
+    unitPreference: UnitPreference;
+    travelStyle: TravelStyle;
+    notificationsEnabled: boolean;
+    priceAlertsEnabled: boolean;
+}
+
+export interface AnalyticsData {
+    totalGroupSavings: number;
+    carbonFootprintEstimate: {
+        totalKgCo2: number;
+        offsetPercentage: number;
+    };
+    popularRegions: { name: string; value: number }[];
+}
+
 // ── V2 API Request ──
 
 export interface RouteRequest {

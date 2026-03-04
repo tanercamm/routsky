@@ -110,6 +110,23 @@ public class SaveRouteStopDto
 
 // ── Saved Route Response ──
 
+/// <summary>
+/// Lightweight DTO for saving a discover/orchestrator route directly.
+/// Does not require FK-resolved stops — stores the city/country as the RouteName.
+/// </summary>
+public class SaveDiscoverRouteDto
+{
+    public string DestinationCity { get; set; } = string.Empty;
+    public string DestinationCountry { get; set; } = string.Empty;
+    public string DestinationCode { get; set; } = string.Empty;
+    public int TotalBudgetUsd { get; set; }
+    public int DurationDays { get; set; }
+    public string SelectionReason { get; set; } = string.Empty;
+    public string Passport { get; set; } = "TR";
+}
+
+// ── Saved Route Response ──
+
 public class SavedRouteResponseDto
 {
     public Guid Id { get; set; }

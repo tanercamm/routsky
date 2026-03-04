@@ -38,10 +38,20 @@ public class AuthResponseDto
     public string? AvatarUrl { get; set; }
     public List<string> Passports { get; set; } = new();
     public string Origin { get; set; } = string.Empty;
+    public string PreferredCurrency { get; set; } = string.Empty;
+    public string UnitPreference { get; set; } = string.Empty;
+    public string TravelStyle { get; set; } = string.Empty;
+    public bool NotificationsEnabled { get; set; }
+    public bool PriceAlertsEnabled { get; set; }
 }
 
 public class UpdateProfileRequestDto
 {
     public List<string> Passports { get; set; } = new();
     public string Origin { get; set; } = string.Empty;
+    public string PreferredCurrency { get; set; } = string.Empty;
+    public string UnitPreference { get; set; } = string.Empty;
+    public string TravelStyle { get; set; } = string.Empty;
+    public bool NotificationsEnabled { get; set; }
+    public bool PriceAlertsEnabled { get; set; }
 }

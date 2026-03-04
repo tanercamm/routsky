@@ -11,6 +11,7 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { TravelGroupsPage } from './pages/TravelGroupsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { AppLayout } from './components/AppLayout';
+import RouteDetailsModal from './components/RouteDetailsModal';
 import { routiqApi } from './api/routiqApi';
 import type { BudgetBracket, RegionPreference } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,7 +19,7 @@ import ReactCountryFlag from 'react-country-flag';
 import { countryNames } from './utils/countryMapper';
 import {
   Loader2, Wallet, Calendar, MapPin, CheckSquare,
-  ChevronDown, XCircle, Zap, AlertTriangle, Globe2, DollarSign, Plane
+  ChevronDown, XCircle, Zap, AlertTriangle, Globe2, Plane
 } from 'lucide-react';
 
 // PASSPORT_OPTIONS removed — citizenship is account-level, set in Profile/Registration
@@ -127,7 +128,7 @@ function Dashboard() {
 
   const [form, setForm] = useState({
     passports: citizenPassports,
-    budgetBracket: 'Budget' as BudgetBracket,
+    budgetBracket: (user?.travelStyle as BudgetBracket) || 'Budget',
     totalBudgetUsd: 1500,
     durationDays: 10,
     regionPreference: 'Any' as RegionPreference,
@@ -142,9 +143,21 @@ function Dashboard() {
     }
   }, [user?.passports]);
 
+  useEffect(() => {
+    if (user?.travelStyle) {
+      setForm(prev => ({ ...prev, budgetBracket: user.travelStyle as BudgetBracket }));
+    }
+  }, [user?.travelStyle]);
+
+  // Display currency preferences
+  const currencySymbol = user?.preferredCurrency === 'TRY' ? '₺' : user?.preferredCurrency === 'EUR' ? '€' : '$';
+  const fxRate = user?.preferredCurrency === 'TRY' ? 36.5 : user?.preferredCurrency === 'EUR' ? 0.92 : 1;
+  const formatPx = (usdNumber: number) => Math.round(usdNumber * fxRate).toLocaleString();
+
   const [result, setResult] = useState<OrchestratorResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detailsTarget, setDetailsTarget] = useState<OrchestratorCandidate | null>(null);
 
   const setField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) =>
     setForm(prev => ({ ...prev, [key]: value }));
@@ -242,7 +255,7 @@ function Dashboard() {
             {/* Side-by-side: Budget Cap & Duration */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <FormLabel icon={Wallet}>Total Budget (USD)</FormLabel>
+                <FormLabel icon={Wallet}>Total Budget ({user?.preferredCurrency || 'USD'})</FormLabel>
                 <input
                   id="totalBudget"
                   type="number"
@@ -423,7 +436,7 @@ function Dashboard() {
                                   </h3>
                                   <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-gray-600 dark:text-gray-300">
                                     <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700/50 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600/50">
-                                      <DollarSign size={14} className="text-green-500" /> ${result!.winner!.avgCostUsd} round-trip
+                                      <span className="text-green-500 font-bold">{currencySymbol}</span> {formatPx(result!.winner!.avgCostUsd)} round-trip
                                     </span>
                                     <span className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700/50 px-2.5 py-1 rounded-lg border border-gray-200 dark:border-gray-600/50">
                                       <Plane size={14} className="text-blue-500" /> {result!.winner!.avgFlightTime} flight
@@ -445,7 +458,7 @@ function Dashboard() {
                                       </div>
                                       <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-md shadow-sm border border-gray-100 dark:border-gray-800">
                                         <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Cost</span>
-                                        <span className="text-xs font-bold text-green-600">${t.costUsd}</span>
+                                        <span className="text-xs font-bold text-green-600">{currencySymbol}{formatPx(t.costUsd)}</span>
                                       </div>
                                       <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-md shadow-sm border border-gray-100 dark:border-gray-800">
                                         <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Visa</span>
@@ -456,6 +469,15 @@ function Dashboard() {
                                     </div>
                                   ))}
                                 </div>
+                              </div>
+                              {/* View Details Footer */}
+                              <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50 flex justify-end">
+                                <button
+                                  onClick={() => setDetailsTarget(result!.winner!)}
+                                  className="h-7 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-[11px] font-black uppercase tracking-widest rounded transition-all border border-gray-300 dark:border-gray-600 shadow-sm flex items-center gap-1"
+                                >
+                                  VIEW DETAILS →
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -482,14 +504,22 @@ function Dashboard() {
                                     <div>
                                       <h4 className="font-extrabold text-gray-900 dark:text-white text-base">{alt.city}, {alt.country}</h4>
                                       <div className="text-xs text-gray-500 dark:text-gray-400 flex gap-3 mt-1 font-medium">
-                                        <span className="flex items-center gap-1"><DollarSign size={12} className="text-green-500" />${alt.avgCostUsd}</span>
+                                        <span className="flex items-center gap-1"><span className="text-green-500 font-bold">{currencySymbol}</span>{formatPx(alt.avgCostUsd)}</span>
                                         <span className="text-gray-300 dark:text-gray-600">•</span>
                                         <span className="flex items-center gap-1"><Plane size={12} className="text-blue-500" />{alt.avgFlightTime}</span>
                                       </div>
                                     </div>
-                                    <div className="text-right">
-                                      <div className="text-xs font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded inline-block">Score: {alt.compositeScore}</div>
-                                      <div className="text-[10px] text-red-400 font-medium mt-0.5">−{(result!.winner!.compositeScore - alt.compositeScore).toFixed(1)} pts behind</div>
+                                    <div className="flex items-center gap-3">
+                                      <div className="text-right">
+                                        <div className="text-xs font-bold text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded inline-block">Score: {alt.compositeScore}</div>
+                                        <div className="text-[10px] text-red-400 font-medium mt-0.5">−{(result!.winner!.compositeScore - alt.compositeScore).toFixed(1)} pts behind</div>
+                                      </div>
+                                      <button
+                                        onClick={() => setDetailsTarget(alt)}
+                                        className="h-7 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-[10px] font-black uppercase tracking-widest rounded transition-all border border-gray-300 dark:border-gray-600 shadow-sm shrink-0"
+                                      >
+                                        DETAILS →
+                                      </button>
                                     </div>
                                   </div>
                                 </motion.div>
@@ -545,6 +575,52 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Route Details Modal */}
+      {detailsTarget && (
+        <RouteDetailsModal
+          trip={{
+            destination: `${detailsTarget.city}, ${detailsTarget.country}`,
+            destinationCode: detailsTarget.destinationCode,
+            totalBudgetUsd: detailsTarget.avgCostUsd,
+            durationDays: form.durationDays,
+            visaStatus: detailsTarget.memberTickets?.[0]?.visaRequired ? 'VISA REQUIRED' : 'VISA-FREE',
+            description: `${detailsTarget.city} scored ${detailsTarget.compositeScore}/100 in the Routiq Decision Engine. Flight from ${detailsTarget.memberTickets?.[0]?.origin || 'IST'} costs $${detailsTarget.avgCostUsd} round-trip and takes ${detailsTarget.avgFlightTime}. Visa status: ${detailsTarget.memberTickets?.[0]?.visaType || 'Unknown'}.`,
+            itinerary: [
+              `Day 1: Arrive in ${detailsTarget.city} — hotel check-in & neighborhood walk`,
+              `Day 2: ${detailsTarget.city} city highlights & cultural landmarks`,
+              `Day 3: Local cuisine tour & hidden gems`,
+              ...(form.durationDays > 3 ? [`Day 4-${Math.min(form.durationDays - 1, 6)}: Regional exploration & day trips`] : []),
+              `Day ${Math.min(form.durationDays, 7)}: Departure from ${detailsTarget.destinationCode}`,
+            ],
+            // Real ticket data from orchestrator for LiveFlightModal
+            ticketData: detailsTarget.memberTickets?.[0] ? {
+              origin: detailsTarget.memberTickets[0].origin,
+              destinationCode: detailsTarget.destinationCode,
+              costUsd: detailsTarget.memberTickets[0].costUsd,
+              flightTime: detailsTarget.memberTickets[0].flightTime,
+              visaRequired: detailsTarget.memberTickets[0].visaRequired,
+              visaType: detailsTarget.memberTickets[0].visaType,
+            } : undefined,
+          }}
+          onClose={() => setDetailsTarget(null)}
+          onSave={async () => {
+            try {
+              await routiqApi.post('/routes/save-discover', {
+                destinationCity: detailsTarget.city,
+                destinationCountry: detailsTarget.country,
+                destinationCode: detailsTarget.destinationCode,
+                totalBudgetUsd: detailsTarget.avgCostUsd,
+                durationDays: form.durationDays,
+                selectionReason: `Score ${detailsTarget.compositeScore}/100. ${detailsTarget.avgFlightTime} flight, $${detailsTarget.avgCostUsd}. Visa: ${detailsTarget.memberTickets?.[0]?.visaType || 'Unknown'}.`,
+                passport: form.passports[0] || 'TR',
+              });
+            } catch (err) {
+              console.error('Failed to save route:', err);
+            }
+          }}
+        />
+      )}
     </main>
   );
 }

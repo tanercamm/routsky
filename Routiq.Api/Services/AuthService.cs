@@ -102,7 +102,12 @@ public class AuthService : IAuthService
                 Username = string.IsNullOrWhiteSpace(user.FirstName) ? user.Email.Split('@')[0] : user.FirstName,
                 Email = user.Email,
                 Passports = request.Passports,
-                Origin = string.IsNullOrWhiteSpace(request.Origin) ? "IST" : request.Origin
+                Origin = string.IsNullOrWhiteSpace(request.Origin) ? "IST" : request.Origin,
+                PreferredCurrency = string.IsNullOrWhiteSpace(request.PreferredCurrency) ? "USD" : request.PreferredCurrency,
+                UnitPreference = string.IsNullOrWhiteSpace(request.UnitPreference) ? "Metric" : request.UnitPreference,
+                TravelStyle = string.IsNullOrWhiteSpace(request.TravelStyle) ? "Comfort" : request.TravelStyle,
+                NotificationsEnabled = request.NotificationsEnabled,
+                PriceAlertsEnabled = request.PriceAlertsEnabled
             };
             _context.UserProfiles.Add(profile);
         }
@@ -113,6 +118,21 @@ public class AuthService : IAuthService
             {
                 profile.Origin = request.Origin;
             }
+            if (!string.IsNullOrWhiteSpace(request.PreferredCurrency))
+            {
+                profile.PreferredCurrency = request.PreferredCurrency;
+            }
+            if (!string.IsNullOrWhiteSpace(request.UnitPreference))
+            {
+                profile.UnitPreference = request.UnitPreference;
+            }
+            if (!string.IsNullOrWhiteSpace(request.TravelStyle))
+            {
+                profile.TravelStyle = request.TravelStyle;
+            }
+            // Update booleans directly
+            profile.NotificationsEnabled = request.NotificationsEnabled;
+            profile.PriceAlertsEnabled = request.PriceAlertsEnabled;
         }
 
         await _context.SaveChangesAsync();
@@ -147,7 +167,12 @@ public class AuthService : IAuthService
             Role = user.Role,
             AvatarUrl = user.AvatarUrl,
             Passports = profile?.Passports ?? new List<string> { "TR" },
-            Origin = profile?.Origin ?? ""
+            Origin = profile?.Origin ?? "",
+            PreferredCurrency = profile?.PreferredCurrency ?? "USD",
+            UnitPreference = profile?.UnitPreference ?? "Metric",
+            TravelStyle = profile?.TravelStyle ?? "Comfort",
+            NotificationsEnabled = profile?.NotificationsEnabled ?? true,
+            PriceAlertsEnabled = profile?.PriceAlertsEnabled ?? true
         };
     }
 }

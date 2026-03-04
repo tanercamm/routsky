@@ -2,9 +2,19 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { routiqApi } from '../api/routiqApi';
 
+interface TicketData {
+    origin: string;
+    destinationCode: string;
+    costUsd: number;
+    flightTime: string;
+    visaRequired: boolean;
+    visaType: string;
+}
+
 interface LiveFlightModalProps {
     destination: string;
     origin?: string;
+    ticketData?: TicketData;
     onClose: () => void;
 }
 
@@ -21,13 +31,32 @@ interface FlightData {
     source?: string;
 }
 
-export default function LiveFlightModal({ destination, origin, onClose }: LiveFlightModalProps) {
+export default function LiveFlightModal({ destination, origin, ticketData, onClose }: LiveFlightModalProps) {
     const [flightData, setFlightData] = useState<FlightData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isRedirecting, setIsRedirecting] = useState(false);
 
     useEffect(() => {
+        // If orchestrator ticket data is provided, use it directly — no API call needed
+        if (ticketData) {
+            setFlightData({
+                flightNumber: `TK ${ticketData.origin}-${ticketData.destinationCode}`,
+                duration: ticketData.flightTime,
+                costUsd: ticketData.costUsd,
+                origin: ticketData.origin,
+                destination: ticketData.destinationCode,
+                visaRequired: ticketData.visaRequired,
+                visaType: ticketData.visaType,
+                isFeasible: true,
+                isEstimate: false,
+                source: 'Orchestrator MCP Pipeline'
+            });
+            setIsLoading(false);
+            return;
+        }
+
+        // Fallback: fetch from backend API (for non-orchestrator usage)
         setIsLoading(true);
         setError(null);
 
@@ -47,7 +76,7 @@ export default function LiveFlightModal({ destination, origin, onClose }: LiveFl
         };
 
         fetchFlightData();
-    }, [destination, origin]);
+    }, [destination, origin, ticketData]);
 
     const displayOrigin = flightData?.origin || origin || 'IST';
 
@@ -102,8 +131,8 @@ export default function LiveFlightModal({ destination, origin, onClose }: LiveFl
                                 {/* Visa Status */}
                                 {flightData?.visaRequired !== undefined && (
                                     <div className={`p-2 rounded-lg text-xs font-medium mb-4 flex items-center gap-2 ${flightData.visaRequired
-                                            ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50'
-                                            : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
+                                        ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50'
+                                        : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
                                         }`}>
                                         <span>{flightData.visaRequired ? '🛂' : '✅'}</span>
                                         <span>{flightData.visaRequired ? `Visa required (${flightData.visaType})` : `Visa-free (${flightData.visaType})`}</span>
@@ -226,11 +255,11 @@ export default function LiveFlightModal({ destination, origin, onClose }: LiveFl
                             {/* Status / Label */}
                             <div className="text-center z-10 border-t border-gray-100 dark:border-slate-800 pt-4 mt-auto">
                                 <div className="font-bold text-gray-900 dark:text-white tracking-wide text-sm flex items-center justify-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                    Dynamic Route Tracking
+                                    <div className={`w-2 h-2 rounded-full ${flightData?.isEstimate === false ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`}></div>
+                                    {flightData?.isEstimate === false ? 'MCP Pipeline Data' : 'Estimated Route Data'}
                                 </div>
                                 <div className="text-xs text-gray-500 dark:text-slate-400 italic mt-1 px-2">
-                                    Flight data from backend MCP pipeline
+                                    {flightData?.source || 'Pending connection'}
                                 </div>
                             </div>
                         </div>

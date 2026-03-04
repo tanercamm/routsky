@@ -126,7 +126,13 @@ export const RegisterPage = () => {
                 name: response.name,
                 role: response.role,
                 passports,
-                avatarUrl: response.avatarUrl || response.AvatarUrl
+                avatarUrl: response.avatarUrl || response.AvatarUrl,
+                origin: response.origin || "",
+                preferredCurrency: response.preferredCurrency || "USD",
+                unitPreference: response.unitPreference || "Metric",
+                travelStyle: response.travelStyle || "Comfort",
+                notificationsEnabled: response.notificationsEnabled ?? true,
+                priceAlertsEnabled: response.priceAlertsEnabled ?? true
             });
             navigate('/');
         } catch (err: any) {

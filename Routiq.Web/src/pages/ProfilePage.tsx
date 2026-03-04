@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { PASSPORT_CODES } from '../constants/passports';
 import ReactCountryFlag from 'react-country-flag';
 import {
-    User, Plane, Globe, Settings, ChevronDown, ChevronUp, CheckCircle2, Loader2, Camera, Trash2, X
+    User, Plane, Globe, Settings, ChevronDown, ChevronUp, CheckCircle2, Loader2, Camera, Trash2, X, ShieldCheck
 } from 'lucide-react';
 import { routiqApi } from '../api/routiqApi';
 
@@ -23,7 +23,8 @@ export const ProfilePage = () => {
     // Citizenship is driven by AuthContext — this is the ONLY place to edit it
     const [passports, setPassports] = useState<string[]>(Array.isArray(user?.passports) ? user.passports : []);
     const [origin, setOrigin] = useState<string>(user?.origin || '');
-    const [preferredCurrency, setPreferredCurrency] = useState('USD');
+    const [preferredCurrency, setPreferredCurrency] = useState(user?.preferredCurrency || 'USD');
+    const [travelStyle, setTravelStyle] = useState(user?.travelStyle || 'Comfort');
     const [prefsSaved, setPrefsSaved] = useState(false);
     const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
@@ -41,14 +42,15 @@ export const ProfilePage = () => {
         }
     }, [isAvatarModalOpen]);
 
-    // Keep local state in sync if context loads late
     useEffect(() => {
         if (Array.isArray(user?.passports) && user.passports.length) setPassports(user.passports);
         if (user?.origin) setOrigin(user.origin);
-    }, [user?.passports, user?.origin]);
+        if (user?.preferredCurrency) setPreferredCurrency(user.preferredCurrency);
+        if (user?.travelStyle) setTravelStyle(user.travelStyle);
+    }, [user?.passports, user?.origin, user?.preferredCurrency, user?.travelStyle]);
 
     const handleSavePrefs = () => {
-        updateProfile({ passports, origin });
+        updateProfile({ passports, origin, preferredCurrency, travelStyle: travelStyle as any });
         setPrefsSaved(true);
         setTimeout(() => setPrefsSaved(false), 2500);
     };
@@ -179,6 +181,25 @@ export const ProfilePage = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Passport Score Banner */}
+                            {(passports && passports.length > 0) && (
+                                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <ShieldCheck size={16} className="text-indigo-500" />
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Passport Power</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex-1 w-32 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full"
+                                                style={{ width: `${Math.min(100, (passports.length * 40) + 20)}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400">{passports.length === 1 ? 'Good' : 'Strong'}</span>
+                                    </div>
+                                </div>
+                            )}
                         </Card>
                     </motion.div>
 
@@ -280,6 +301,21 @@ export const ProfilePage = () => {
                                                         {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                                                     </select>
                                                 </div>
+
+                                                {/* Travel Style */}
+                                                <div>
+                                                    <label className="text-[11px] font-medium text-gray-700 dark:text-gray-300 mb-1 block uppercase tracking-wide">Primary Travel Style</label>
+                                                    <select
+                                                        value={travelStyle}
+                                                        onChange={e => setTravelStyle(e.target.value as any)}
+                                                        className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-teal-500/40 transition-colors"
+                                                    >
+                                                        <option value="Shoestring">Shoestring (Hostels, strict budget)</option>
+                                                        <option value="Budget">Budget (Economy, careful spending)</option>
+                                                        <option value="Comfort">Comfort (Standard hotels, balanced)</option>
+                                                        <option value="Luxury">Luxury (Premium experiences)</option>
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -364,99 +400,101 @@ export const ProfilePage = () => {
                     </motion.div>
 
                 </div>
-            </main>
+            </main >
 
             {/* ── Avatar Management Modal ────────────────────────────────────── */}
             <AnimatePresence>
-                {isAvatarModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                            onClick={() => !isUploading && setIsAvatarModalOpen(false)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md overflow-hidden"
-                        >
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Profile Picture</h3>
-                                <button
-                                    onClick={() => !isUploading && setIsAvatarModalOpen(false)}
-                                    className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                                    disabled={isUploading}
-                                >
-                                    <X size={18} />
-                                </button>
-                            </div>
-
-                            <div className="flex flex-col items-center justify-center py-2 space-y-8">
-                                {/* Jumbo Avatar Display */}
-                                <div className="w-72 h-72 rounded-full overflow-hidden ring-4 ring-gray-100 dark:ring-gray-800 shadow-2xl relative">
-                                    {isUploading && (
-                                        <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center backdrop-blur-sm">
-                                            <Loader2 size={32} className="text-white animate-spin" />
-                                        </div>
-                                    )}
-
-                                    {(previewUrl || user?.avatarUrl) ? (
-                                        <img src={previewUrl || (user?.avatarUrl?.startsWith('http') ? user.avatarUrl : `http://localhost:5107${user?.avatarUrl}`)} alt="Profile" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center">
-                                            <User size={48} className="text-white" />
-                                        </div>
-                                    )}
+                {
+                    isAvatarModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                                onClick={() => !isUploading && setIsAvatarModalOpen(false)}
+                            />
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md overflow-hidden"
+                            >
+                                <div className="flex justify-between items-center mb-6">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Profile Picture</h3>
+                                    <button
+                                        onClick={() => !isUploading && setIsAvatarModalOpen(false)}
+                                        className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                                        disabled={isUploading}
+                                    >
+                                        <X size={18} />
+                                    </button>
                                 </div>
 
-                                {/* Actions */}
-                                <div className="w-full space-y-2">
-                                    {!selectedFile ? (
-                                        <>
-                                            <label className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium rounded-xl transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800 dark:hover:bg-gray-100 cursor-pointer'}`}>
-                                                <input type="file" className="hidden" accept="image/*" onChange={handleFileSelect} disabled={isUploading} />
-                                                <Camera size={18} />
-                                                Change Photo
-                                            </label>
+                                <div className="flex flex-col items-center justify-center py-2 space-y-8">
+                                    {/* Jumbo Avatar Display */}
+                                    <div className="w-72 h-72 rounded-full overflow-hidden ring-4 ring-gray-100 dark:ring-gray-800 shadow-2xl relative">
+                                        {isUploading && (
+                                            <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center backdrop-blur-sm">
+                                                <Loader2 size={32} className="text-white animate-spin" />
+                                            </div>
+                                        )}
 
-                                            {user?.avatarUrl && (
+                                        {(previewUrl || user?.avatarUrl) ? (
+                                            <img src={previewUrl || (user?.avatarUrl?.startsWith('http') ? user.avatarUrl : `http://localhost:5107${user?.avatarUrl}`)} alt="Profile" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center">
+                                                <User size={48} className="text-white" />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="w-full space-y-2">
+                                        {!selectedFile ? (
+                                            <>
+                                                <label className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium rounded-xl transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800 dark:hover:bg-gray-100 cursor-pointer'}`}>
+                                                    <input type="file" className="hidden" accept="image/*" onChange={handleFileSelect} disabled={isUploading} />
+                                                    <Camera size={18} />
+                                                    Change Photo
+                                                </label>
+
+                                                {user?.avatarUrl && (
+                                                    <button
+                                                        onClick={handleRemoveAvatar}
+                                                        disabled={isUploading}
+                                                        className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white dark:bg-transparent text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 font-medium rounded-xl border border-red-200 dark:border-transparent transition-colors disabled:opacity-50"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                        Remove Photo
+                                                    </button>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div className="flex gap-2">
                                                 <button
-                                                    onClick={handleRemoveAvatar}
+                                                    onClick={() => { setSelectedFile(null); setPreviewUrl(null); }}
                                                     disabled={isUploading}
-                                                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white dark:bg-transparent text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 font-medium rounded-xl border border-red-200 dark:border-transparent transition-colors disabled:opacity-50"
+                                                    className="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
                                                 >
-                                                    <Trash2 size={18} />
-                                                    Remove Photo
+                                                    Cancel
                                                 </button>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => { setSelectedFile(null); setPreviewUrl(null); }}
-                                                disabled={isUploading}
-                                                className="flex-1 py-2.5 px-4 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                onClick={handleSaveAvatar}
-                                                disabled={isUploading}
-                                                className="flex-1 py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-sm transition-colors flex justify-center items-center disabled:opacity-50"
-                                            >
-                                                {isUploading ? <Loader2 size={18} className="animate-spin" /> : "Save Picture"}
-                                            </button>
-                                        </div>
-                                    )}
+                                                <button
+                                                    onClick={handleSaveAvatar}
+                                                    disabled={isUploading}
+                                                    className="flex-1 py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-sm transition-colors flex justify-center items-center disabled:opacity-50"
+                                                >
+                                                    {isUploading ? <Loader2 size={18} className="animate-spin" /> : "Save Picture"}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-        </div>
+                            </motion.div>
+                        </div>
+                    )
+                }
+            </AnimatePresence >
+        </div >
     );
 };

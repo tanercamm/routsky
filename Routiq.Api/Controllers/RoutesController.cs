@@ -142,6 +142,65 @@ public class RoutesController : ControllerBase
     }
 
     /// <summary>
+    /// Lightweight save for orchestrator/discover routes.
+    /// Creates a minimal RouteQuery + SavedRoute without requiring FK-resolved stops.
+    /// </summary>
+    [Authorize]
+    [HttpPost("save-discover")]
+    public async Task<IActionResult> SaveDiscoverRoute([FromBody] SaveDiscoverRouteDto request)
+    {
+        var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(userIdStr, out int currentUserId))
+            return Unauthorized("Invalid or missing user token.");
+
+        var user = await _context.Users.FindAsync(currentUserId);
+        if (user == null)
+            return NotFound("User not found.");
+
+        // Check for duplicate saved routes (same user + same destination)
+        var existingRoute = await _context.SavedRoutes
+            .AnyAsync(sr => sr.UserId == currentUserId && sr.RouteName == $"{request.DestinationCity}, {request.DestinationCountry}");
+        if (existingRoute)
+            return Ok(new { Message = "Route already saved.", AlreadySaved = true });
+
+        var query = new RouteQuery
+        {
+            Id = Guid.NewGuid(),
+            UserId = currentUserId,
+            Passports = new List<string> { request.Passport },
+            BudgetBracket = BudgetBracket.Mid,
+            TotalBudgetUsd = request.TotalBudgetUsd,
+            DurationDays = request.DurationDays,
+            RegionPreference = RegionPreference.Any,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var savedRoute = new SavedRoute
+        {
+            Id = Guid.NewGuid(),
+            UserId = currentUserId,
+            RouteQueryId = query.Id,
+            RouteName = $"{request.DestinationCity}, {request.DestinationCountry}",
+            Status = RouteStatus.Saved,
+            SelectionReason = !string.IsNullOrWhiteSpace(request.SelectionReason)
+                ? request.SelectionReason
+                : $"Orchestrator selected {request.DestinationCity} ({request.DestinationCode}) for ${request.TotalBudgetUsd} budget, {request.DurationDays} days.",
+            SavedAt = DateTime.UtcNow
+        };
+
+        _context.RouteQueries.Add(query);
+        _context.SavedRoutes.Add(savedRoute);
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            Message = "Route saved successfully.",
+            RouteId = savedRoute.Id,
+            RouteName = savedRoute.RouteName
+        });
+    }
+
+    /// <summary>
     /// Returns all saved routes for a given user, including their ordered stops.
     /// </summary>
     [HttpGet("user/{userId}")]
