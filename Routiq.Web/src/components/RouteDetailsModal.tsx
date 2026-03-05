@@ -37,20 +37,24 @@ export default function RouteDetailsModal({ trip, onClose, onSave }: any) {
         const temp = Math.round(current.temperature);
         const code = current.weathercode;
 
-        let condition = "clear";
-        let advice = "perfect for your scheduled outdoor tour.";
+        let condition = "Clear ☀️";
+        let advice = "Perfect for your scheduled outdoor tour! 👟";
 
-        if (code >= 1 && code <= 3) { condition = "partly cloudy"; advice = "a great time to explore the city on foot."; }
-        else if (code >= 45 && code <= 48) { condition = "foggy"; advice = "take it easy on the roads and enjoy a cozy indoor cafe."; }
-        else if (code >= 51 && code <= 67) { condition = "rainy"; advice = "bring a light jacket and an umbrella for the Day 1 activities."; }
-        else if (code >= 71 && code <= 77) { condition = "snowy"; advice = "bundle up! It's beautiful weather for winter sightseeing."; }
-        else if (code >= 80 && code <= 82) { condition = "experiencing rain showers"; advice = "expect intermittent rain, keep your itinerary flexible."; }
-        else if (code >= 95 && code <= 99) { condition = "stormy"; advice = "safest to plan indoor activities until it passes."; }
+        if (code >= 1 && code <= 3) { condition = "Partly Cloudy ⛅"; advice = "A great time to explore the city on foot. 🚶"; }
+        else if (code >= 45 && code <= 48) { condition = "Foggy 🌫️"; advice = "Take it easy on the roads and enjoy a cozy indoor cafe. ☕"; }
+        else if (code >= 51 && code <= 67) { condition = "Rainy 🌧️"; advice = "Bring a light jacket and an umbrella for the Day 1 activities. ☔"; }
+        else if (code >= 71 && code <= 77) { condition = "Snowy ❄️"; advice = "Bundle up! It's beautiful weather for winter sightseeing. ⛄"; }
+        else if (code >= 80 && code <= 82) { condition = "Experiencing Rain Showers 🌦️"; advice = "Expect intermittent rain, keep your itinerary flexible. 🏛️"; }
+        else if (code >= 95 && code <= 99) { condition = "Stormy ⛈️"; advice = "Safest to plan indoor activities or find a local restaurant until it passes. 🍽️"; }
+
+        let tempWarning = "";
+        if (temp > 30) tempWarning = " 🔥";
+        else if (temp < 5) tempWarning = " 🥶";
 
         // Artificial delay so the user feels the "Agent Orchestration"
         setTimeout(() => {
           if (mounted) {
-            setDynamicInsight(`${trip.destination} is currently ${temp}°C and ${condition}—I've verified the live conditions, and it's ${advice}`);
+            setDynamicInsight(`Currently ${temp}°C${tempWarning} and ${condition} in ${trip.destination}. I've verified the live conditions—${advice}`);
           }
         }, 800);
 
@@ -127,14 +131,14 @@ export default function RouteDetailsModal({ trip, onClose, onSave }: any) {
             <h3 className="font-bold mb-2 text-indigo-800 dark:text-indigo-300 text-lg flex items-center gap-2">
               <span>🧠</span> Orchestrator's Real-Time Analysis
             </h3>
-            <p className="leading-relaxed text-gray-700 dark:text-gray-300 font-medium flex items-center gap-2">
+            <p className="leading-relaxed text-indigo-900 dark:text-indigo-200 font-medium flex items-start gap-3 mt-3 bg-white/40 dark:bg-black/20 p-3 rounded-lg border border-indigo-200/50 dark:border-indigo-700/30 shadow-inner">
               {trip?.agentInsight || dynamicInsight ? (
-                trip?.agentInsight || dynamicInsight
+                <span className="text-sm">{trip?.agentInsight || dynamicInsight}</span>
               ) : (
-                <>
-                  <span className="w-3.5 h-3.5 rounded-full border-[2px] border-indigo-400 dark:border-indigo-500 border-t-transparent animate-spin inline-block"></span>
+                <span className="flex items-center gap-2 text-sm italic text-indigo-700/70 dark:text-indigo-300/70">
+                  <span className="w-3.5 h-3.5 rounded-full border-[2px] border-indigo-400 dark:border-indigo-500 border-t-transparent animate-spin inline-block shrink-0"></span>
                   Fetching live environmental and situational insight from the Agentic Orchestrator...
-                </>
+                </span>
               )}
             </p>
           </div>
