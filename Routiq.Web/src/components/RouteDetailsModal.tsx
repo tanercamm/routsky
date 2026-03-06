@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import LiveFlightModal from './LiveFlightModal';
 import { useAuth } from '../context/AuthContext';
-import { routiqApi } from '../api/routiqApi';
+import { routiqApi, getAgentInsight } from '../api/routiqApi';
 
 export default function RouteDetailsModal({ trip, onClose, onSave }: any) {
   const [isThyModalOpen, setIsThyModalOpen] = useState(false);
@@ -16,45 +16,17 @@ export default function RouteDetailsModal({ trip, onClose, onSave }: any) {
       if (!trip?.destination || trip.agentInsight) return;
 
       try {
+        if (!mounted) return;
+
         // Simulate Orchestrator Thinking and fetching Live MCP Data
-        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(trip.destination)}&count=1`);
-        const geoData = await geoRes.json();
+        const insightData = await getAgentInsight(trip.destination);
 
         if (!mounted) return;
-
-        if (!geoData.results || geoData.results.length === 0) {
-          setDynamicInsight(`Verified your travel plans for ${trip.destination}. The orchestrator has confirmed this route matches your criteria perfectly.`);
-          return;
-        }
-
-        const { latitude, longitude } = geoData.results[0];
-        const wxRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
-        const wxData = await wxRes.json();
-
-        if (!mounted) return;
-
-        const current = wxData.current_weather;
-        const temp = Math.round(current.temperature);
-        const code = current.weathercode;
-
-        let condition = "Clear ☀️";
-        let advice = "Perfect for your scheduled outdoor tour! 👟";
-
-        if (code >= 1 && code <= 3) { condition = "Partly Cloudy ⛅"; advice = "A great time to explore the city on foot. 🚶"; }
-        else if (code >= 45 && code <= 48) { condition = "Foggy 🌫️"; advice = "Take it easy on the roads and enjoy a cozy indoor cafe. ☕"; }
-        else if (code >= 51 && code <= 67) { condition = "Rainy 🌧️"; advice = "Bring a light jacket and an umbrella for the Day 1 activities. ☔"; }
-        else if (code >= 71 && code <= 77) { condition = "Snowy ❄️"; advice = "Bundle up! It's beautiful weather for winter sightseeing. ⛄"; }
-        else if (code >= 80 && code <= 82) { condition = "Experiencing Rain Showers 🌦️"; advice = "Expect intermittent rain, keep your itinerary flexible. 🏛️"; }
-        else if (code >= 95 && code <= 99) { condition = "Stormy ⛈️"; advice = "Safest to plan indoor activities or find a local restaurant until it passes. 🍽️"; }
-
-        let tempWarning = "";
-        if (temp > 30) tempWarning = " 🔥";
-        else if (temp < 5) tempWarning = " 🥶";
 
         // Artificial delay so the user feels the "Agent Orchestration"
         setTimeout(() => {
           if (mounted) {
-            setDynamicInsight(`Currently ${temp}°C${tempWarning} and ${condition} in ${trip.destination}. I've verified the live conditions—${advice}`);
+            setDynamicInsight(insightData.text);
           }
         }, 800);
 

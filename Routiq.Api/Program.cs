@@ -27,6 +27,7 @@ builder.Services.AddScoped<RouteFeasibilityService>();
 builder.Services.AddScoped<BudgetConsistencyService>();
 builder.Services.AddScoped<TimeOverlapService>();
 builder.Services.AddScoped<DecisionSolverService>();
+builder.Services.AddHttpClient<AgentInsightService>();
 
 // ── JWT Authentication ──
 var key = System.Text.Encoding.ASCII.GetBytes(

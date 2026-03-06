@@ -75,6 +75,11 @@ export const runDecisionEngine = async (groupId: string) => {
     return response.data;
 };
 
+export const getAgentInsight = async (city: string) => {
+    const response = await api.get(`/agent/insight/${encodeURIComponent(city)}`);
+    return response.data;
+};
+
 // ── Settings ──
 
 export const updatePreferences = async (preferences: { preferredCurrency?: string, unitPreference?: string }) => {
