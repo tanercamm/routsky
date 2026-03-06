@@ -1,4 +1,5 @@
 services:
+  # ── PostgreSQL 17 ──
   db:
     image: postgres:17
     container_name: routiq_db
@@ -9,4 +10,41 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      - routiq_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── .NET API ──
+  api:
+    build:
+      context: ./Routiq.Api
+      dockerfile: Dockerfile
+    container_name: routiq_api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: >-
+        Host=db;Port=5432;Database=routiq_db;Username=postgres;Password=SecurePass123!;Include Error Detail=true
+      Gemini__ApiKey: ${GEMINI_API_KEY:-mock-key}
+      Jwt__Key: ${JWT_KEY:-SuperSecretKeyForDevelopmentOnly123!}
+    ports:
+      - "5107:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ── React + Nginx ──
+  web:
+    build:
+      context: ./Routiq.Web
+      dockerfile: Dockerfile
+    container_name: routiq_web
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+volumes:
+  routiq_data:

@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { RouteRequest, RouteResponse } from '../types';
 
 const api = axios.create({
-    baseURL: 'http://localhost:5107/api',
+    baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
 });
 
 // ── Critical: Set auth header at module load, BEFORE any component mounts ──
