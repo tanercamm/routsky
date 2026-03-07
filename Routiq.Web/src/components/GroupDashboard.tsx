@@ -118,8 +118,7 @@ const GroupDashboard = ({ allGroups, selectedGroupId, onBack, deleteGroup }: any
         const isCurrentUser = member.id === currentUser?.id;
         const raw = isCurrentUser ? currentUser?.avatarUrl : (member.avatar || member.avatarUrl);
         return raw
-            ? (raw.startsWith('http') ? raw : `http://localhost:5107${raw}`)
-            : `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&color=fff`;
+            || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random&color=fff`;
     };
 
     return (

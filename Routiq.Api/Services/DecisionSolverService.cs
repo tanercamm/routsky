@@ -391,95 +391,17 @@ Respond STRICTLY in JSON matching this exact C# schema, NO markdown wrapping.
                 return result;
             }
 
-            _logger.LogWarning("Gemini returned a response but deserialization produced null; falling back to deterministic scoring");
+            _logger.LogError("Gemini returned a response but deserialization produced null.");
+            throw new Exception("Gemini AI failed to produce a valid decision response.");
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Gemini AI call failed ({Message}); falling back to deterministic scoring", ex.Message);
+            _logger.LogError(ex, "Gemini AI call failed ({Message}).", ex.Message);
+            throw;
         }
-
-        return BuildDeterministicFallback(storedTickets);
     }
 
-    private DecisionResult BuildDeterministicFallback(Dictionary<string, List<MemberTicket>> storedTickets)
-    {
-        var scored = new List<(string Code, string City, string Country, double Score, int AvgCost, string AvgTime, List<MemberTicket> Tickets)>();
-        var eliminated = new Dictionary<string, string>();
 
-        foreach (var (code, tickets) in storedTickets)
-        {
-            var candidate = CandidateDestinations.FirstOrDefault(c => c.Code == code);
-            if (candidate == default) continue;
-
-            if (tickets.Any(t => t.VisaRequired))
-            {
-                eliminated[code] = $"Visa required for {string.Join(", ", tickets.Where(t => t.VisaRequired).Select(t => t.MemberName))}";
-                continue;
-            }
-
-            if (tickets.All(t => t.BudgetSeverity == "over"))
-            {
-                eliminated[code] = "Over budget for all members";
-                continue;
-            }
-
-            var avgCost = (int)tickets.Average(t => t.CostUsd);
-            var avgTimeMin = (int)tickets.Average(t => t.FlightTimeMinutes);
-            var overBudgetCount = tickets.Count(t => t.BudgetSeverity == "over");
-
-            double costScore = Math.Max(0, 100 - (avgCost / 25.0));
-            double timeScore = Math.Max(0, 100 - (avgTimeMin / 6.0));
-            double budgetPenalty = overBudgetCount * 15.0;
-            double score = (costScore * 0.30) + (timeScore * 0.25) + (candidate.PrestigeScore * 0.45) - budgetPenalty;
-
-            var avgTimeStr = $"{avgTimeMin / 60}h {avgTimeMin % 60}m";
-            scored.Add((code, candidate.City, candidate.Country, score, avgCost, avgTimeStr, tickets));
-        }
-
-        scored.Sort((a, b) => b.Score.CompareTo(a.Score));
-
-        if (scored.Count == 0)
-            return new DecisionResult
-            {
-                Explanation = "All candidate destinations were eliminated by visa or budget constraints. Try adjusting your budget or selecting a different region.",
-                EliminatedReasons = eliminated,
-                DecidedAt = DateTime.UtcNow,
-                Source = "fallback"
-            };
-
-        var winner = scored[0];
-        var alts = scored.Skip(1).Take(3).ToList();
-
-        return new DecisionResult
-        {
-            Winner = new CandidateResult
-            {
-                DestinationCode = winner.Code,
-                City = winner.City,
-                Country = winner.Country,
-                CompositeScore = Math.Round(winner.Score, 1),
-                AvgCostUsd = winner.AvgCost,
-                AvgFlightTime = winner.AvgTime,
-                MemberTickets = winner.Tickets
-            },
-            Alternatives = alts.Select(a => new CandidateResult
-            {
-                DestinationCode = a.Code,
-                City = a.City,
-                Country = a.Country,
-                CompositeScore = Math.Round(a.Score, 1),
-                AvgCostUsd = a.AvgCost,
-                AvgFlightTime = a.AvgTime,
-                MemberTickets = a.Tickets
-            }).ToList(),
-            Explanation = $"{winner.City}, {winner.Country} is the strongest match based on a composite analysis of flight costs (avg ${winner.AvgCost}), travel time ({winner.AvgTime}), visa accessibility, and destination prestige. "
-                + (alts.Count > 0 ? $"Close alternatives include {string.Join(" and ", alts.Select(a => $"{a.City} (score {a.Score:F0})"))}. " : "")
-                + (eliminated.Count > 0 ? $"{eliminated.Count} destination(s) were eliminated due to visa or budget constraints." : ""),
-            EliminatedReasons = eliminated,
-            DecidedAt = DateTime.UtcNow,
-            Source = "fallback"
-        };
-    }
 
     private async Task<(List<MemberInfo> Members, List<string> Warnings)> FetchMembersAsync(Guid groupId)
     {

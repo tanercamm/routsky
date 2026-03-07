@@ -137,7 +137,7 @@ export const ProfilePage = () => {
                                         aria-label="Manage Avatar"
                                     >
                                         {user?.avatarUrl ? (
-                                            <img src={user.avatarUrl.startsWith('http') ? user.avatarUrl : `http://localhost:5107${user.avatarUrl}`} alt="Profile" className="w-full h-full object-cover" />
+                                            <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center">
                                                 <User size={24} className="text-white" />
@@ -441,7 +441,7 @@ export const ProfilePage = () => {
                                         )}
 
                                         {(previewUrl || user?.avatarUrl) ? (
-                                            <img src={previewUrl || (user?.avatarUrl?.startsWith('http') ? user.avatarUrl : `http://localhost:5107${user?.avatarUrl}`)} alt="Profile" className="w-full h-full object-cover" />
+                                            <img src={previewUrl || user?.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center">
                                                 <User size={48} className="text-white" />

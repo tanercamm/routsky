@@ -108,7 +108,7 @@ export const Navbar = () => {
                             title="Profile"
                         >
                             {user?.avatarUrl ? (
-                                <img src={user.avatarUrl.startsWith('http') ? user.avatarUrl : `http://localhost:5107${user.avatarUrl}`} alt="Navbar Avatar" className="w-full h-full object-cover" />
+                                <img src={user.avatarUrl} alt="Navbar Avatar" className="w-full h-full object-cover" />
                             ) : (
                                 <User size={16} className={
                                     location.pathname === '/profile'

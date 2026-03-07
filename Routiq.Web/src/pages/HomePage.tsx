@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback, useMemo, memo } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo, memo, startTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import Globe, { type GlobeMethods } from 'react-globe.gl';
@@ -158,20 +158,27 @@ export function HomePage() {
       controls.minDistance = 180;
       controls.maxDistance = 600;
 
+      let rafId = 0;
       const handleChange = () => {
-        const cam = globeRef.current?.camera();
-        if (!cam) return;
-        const dist = cam.position.length();
-        let tier: ZoomTier = 'far';
-        if (dist < 280) tier = 'close';
-        else if (dist < 420) tier = 'mid';
-        if (tier !== zoomTierRef.current) {
-          zoomTierRef.current = tier;
-          setZoomTier(tier);
-        }
+        cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          const cam = globeRef.current?.camera();
+          if (!cam) return;
+          const dist = cam.position.length();
+          let tier: ZoomTier = 'far';
+          if (dist < 280) tier = 'close';
+          else if (dist < 420) tier = 'mid';
+          if (tier !== zoomTierRef.current) {
+            zoomTierRef.current = tier;
+            setZoomTier(tier);
+          }
+        });
       };
       controls.addEventListener('change', handleChange);
-      return () => controls.removeEventListener('change', handleChange);
+      return () => {
+        cancelAnimationFrame(rafId);
+        controls.removeEventListener('change', handleChange);
+      };
     }
     globeRef.current.pointOfView({ lat: 35, lng: 30, altitude: 2.2 }, 0);
   }, [dimensions]);
@@ -179,7 +186,13 @@ export function HomePage() {
   const handlePointClick = useCallback((point: object | null) => {
     if (!point) return;
     const city = point as CityPoint;
-    setSelected(city);
+    const controls = globeRef.current?.controls();
+    if (controls) controls.autoRotate = false;
+    
+    // Fix: Make Three.js raycasting logic asynchronous by yielding the React render cycle
+    startTransition(() => {
+      setSelected(city);
+    });
   }, []);
 
   const handleDismiss = useCallback(() => {
@@ -248,11 +261,11 @@ export function HomePage() {
       >
         <div className="flex gap-4">
           {[
-            { label: 'ACTIVE NODES', value: ALL_CITIES.length.toString(), color: 'text-teal-400/80' },
-            { label: 'COUNTRIES', value: new Set(ALL_CITIES.map(c => c.country)).size.toString(), color: 'text-slate-400' },
-            { label: 'REGIONS', value: '7', color: 'text-gray-400' },
+            { label: 'ACTIVE NODES', value: ALL_CITIES.length.toString(), color: 'text-teal-500/60' },
+            { label: 'COUNTRIES', value: new Set(ALL_CITIES.map(c => c.country)).size.toString(), color: 'text-slate-500' },
+            { label: 'REGIONS', value: '7', color: 'text-gray-500' },
           ].map(s => (
-            <div key={s.label} className="border border-slate-800 bg-[#0a1628]/90 rounded-lg px-4 py-2.5">
+            <div key={s.label} className="border border-slate-800/80 bg-[#0a1628] rounded-lg px-4 py-2.5">
               <div className={`text-xl font-black ${s.color} tabular-nums`}>{s.value}</div>
               <div className="text-[9px] font-bold tracking-[0.2em] text-gray-600 uppercase">{s.label}</div>
             </div>
@@ -260,23 +273,23 @@ export function HomePage() {
         </div>
       </motion.div>
 
-      {/* Top-right network status */}
+      {/* Top-right network status — matte flat panel */}
       <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.5 }}
         className="absolute top-6 right-6 z-20 pointer-events-none"
       >
-        <div className="border border-slate-800 bg-[#0a1628]/90 rounded-lg px-4 py-3 min-w-[180px]">
+        <div className="border border-slate-800/80 bg-[#0a1628] rounded-lg px-4 py-3 min-w-[180px]">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400/80" />
-            <span className="text-[10px] font-bold tracking-[0.2em] text-green-400/70 uppercase">System Online</span>
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500/50" />
+            <span className="text-[10px] font-bold tracking-[0.2em] text-green-500/50 uppercase">System Online</span>
           </div>
           <div className="space-y-1">
             {['Visa Engine', 'Cost Analyzer', 'Flight Scanner', 'Safety Monitor'].map((s, i) => (
               <div key={s} className="flex items-center justify-between">
-                <span className="text-[10px] text-gray-500">{s}</span>
-                <span className={`text-[10px] font-bold ${i < 3 ? 'text-green-500/60' : 'text-slate-400'}`}>
+                <span className="text-[10px] text-gray-600">{s}</span>
+                <span className={`text-[10px] font-bold ${i < 3 ? 'text-green-600/50' : 'text-slate-500'}`}>
                   {i < 3 ? 'READY' : 'ACTIVE'}
                 </span>
               </div>
@@ -285,7 +298,7 @@ export function HomePage() {
         </div>
       </motion.div>
 
-      {/* Center CTA — solid dark flat button */}
+      {/* Center CTA — matte flat NASA-style button */}
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -296,18 +309,18 @@ export function HomePage() {
           onClick={() => navigate('/find-route')}
           className="group relative cursor-pointer"
         >
-          <div className="relative flex items-center gap-3 bg-[#0a1628] border border-slate-700 group-hover:border-slate-600 rounded-2xl px-8 py-4 shadow-none transition-colors duration-300">
-            <Zap size={20} className="text-slate-400 group-hover:text-slate-300" />
+          <div className="relative flex items-center gap-3 bg-[#0c1424] border border-slate-700/60 group-hover:border-slate-600/80 rounded-xl px-8 py-4 transition-colors duration-200">
+            <Zap size={20} className="text-slate-500 group-hover:text-slate-400" />
             <div className="text-left">
-              <div className="text-sm font-black text-white tracking-wide group-hover:text-gray-200 transition-colors">
+              <div className="text-sm font-black text-gray-200 tracking-wide group-hover:text-white transition-colors">
                 Initialize Agentic Search
               </div>
-              <div className="text-[10px] text-gray-500 tracking-wider uppercase">
+              <div className="text-[10px] text-gray-600 tracking-wider uppercase">
                 Launch Decision Engine
               </div>
             </div>
-            <div className="ml-2 w-px h-8 bg-slate-700" />
-            <div className="text-slate-400 group-hover:translate-x-1 transition-transform">→</div>
+            <div className="ml-2 w-px h-8 bg-slate-800" />
+            <div className="text-slate-500 group-hover:translate-x-1 transition-transform">→</div>
           </div>
         </button>
       </motion.div>

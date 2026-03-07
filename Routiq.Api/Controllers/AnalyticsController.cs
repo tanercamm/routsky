@@ -82,46 +82,31 @@ public class AnalyticsController : ControllerBase
 
     private async Task<double> CalculateUserSavingsAsync(int userId)
     {
-        // For right now, we'll keep it simple: $0 if no saved routes, otherwise calculate based on budget vs actual
-        var userRoutes = await _context.SavedRoutes
+        // Real savings require actual travel cost data which isn't tracked yet.
+        // Return the total budget allocated across saved routes as a baseline metric.
+        var totalBudget = await _context.SavedRoutes
             .Include(sr => sr.RouteQuery)
-            .Where(sr => sr.UserId == userId && (sr.Status == Entities.RouteStatus.Active || sr.Status == Entities.RouteStatus.Traveled || sr.Status == Entities.RouteStatus.Saved))
-            .ToListAsync();
+            .Where(sr => sr.UserId == userId
+                && (sr.Status == Entities.RouteStatus.Active || sr.Status == Entities.RouteStatus.Traveled || sr.Status == Entities.RouteStatus.Saved)
+                && sr.RouteQuery != null && sr.RouteQuery.TotalBudgetUsd > 0)
+            .SumAsync(sr => (double)sr.RouteQuery!.TotalBudgetUsd);
 
-        if (!userRoutes.Any()) return 0;
-
-        double totalSavings = 0;
-        foreach (var route in userRoutes)
-        {
-            if (route.RouteQuery != null && route.RouteQuery.TotalBudgetUsd > 0)
-            {
-                // Engine always finds options matching the query budget.
-                // We simulate 15% savings off the max budget for the dashboard.
-                totalSavings += (route.RouteQuery.TotalBudgetUsd * 0.15);
-            }
-            else
-            {
-                // Give some baseline savings for generated routes to make the dashboard look good initially
-                totalSavings += 150;
-            }
-        }
-
-        return totalSavings;
+        return totalBudget;
     }
 
     private async Task<object> CalculateCarbonFootprintAsync(int userId)
     {
+        // Count saved trips; estimate ~115g CO2 per passenger-km, avg 2000km round-trip per route
         var userRoutesCount = await _context.SavedRoutes
            .Where(sr => sr.UserId == userId)
            .CountAsync();
 
-        // Very basic mock calculation for the dashboard visual
-        double totalKgCo2 = userRoutesCount * 450.5; // Average footprint per trip
+        double estimatedKgCo2 = userRoutesCount * 230.0; // 2000km * 0.115 kg/km
 
         return new
         {
-            totalKgCo2,
-            offsetPercentage = 25 // Arbitrary 'green' metric 
+            totalKgCo2 = estimatedKgCo2,
+            tripsTracked = userRoutesCount
         };
     }
 
@@ -138,16 +123,6 @@ public class AnalyticsController : ControllerBase
             .Take(5)
             .ToListAsync();
 
-        if (regions.Any())
-        {
-            return regions.Select(r => new { name = r.Region, value = r.Count } as object).ToList();
-        }
-
-        // Fallback for new users dashboard
-        return new List<object>
-        {
-            new { name = "Europe", value = 3 },
-            new { name = "Asia", value = 1 }
-        };
+        return regions.Select(r => new { name = r.Region, value = r.Count } as object).ToList();
     }
 }

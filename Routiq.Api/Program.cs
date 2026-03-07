@@ -40,7 +40,7 @@ if (string.IsNullOrWhiteSpace(geminiKey) || geminiKey == "mock-key")
 
 builder.Services.AddKernel()
     .AddGoogleAIGeminiChatCompletion(
-        modelId: "gemini-2.5-flash-lite",
+        modelId: "gemini-2.0-flash",
         apiKey: geminiKey);
 
 // ── JWT Authentication ──

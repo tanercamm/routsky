@@ -337,8 +337,7 @@ export const TravelGroupsPage = () => {
                                                 {group.members.slice(0, 5).map((member: any, i: number) => {
                                                     const avatarSrc = member.avatar || member.avatarUrl;
                                                     const solvedUrl = avatarSrc
-                                                        ? (avatarSrc.startsWith('http') ? avatarSrc : `http://localhost:5107${avatarSrc}`)
-                                                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'User')}&background=random&color=fff`;
+                                                        || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'User')}&background=random&color=fff`;
 
                                                     return (
                                                         <div
