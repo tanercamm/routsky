@@ -11,7 +11,7 @@ export interface CityPoint {
   bestMonths?: string;
 }
 
-// Routiq-supported cities from CityIntelligences DB
+// Navisio-supported cities from CityIntelligences DB
 // tier 1 = major global hub, tier 2 = secondary hub, tier 3 = niche/regional
 export const SUPPORTED_CITIES: CityPoint[] = [
   // ── Europe ───────────────────────────────────────────────────────────

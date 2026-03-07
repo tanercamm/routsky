@@ -1,15 +1,15 @@
-@Routiq.Api_HostAddress = http://localhost:5107
+@Navisio.Api_HostAddress = http://localhost:5107
 
-GET {{Routiq.Api_HostAddress}}/weatherforecast/
+GET {{Navisio.Api_HostAddress}}/weatherforecast/
 Accept: application/json
 
 ###
-###
-POST {{Routiq.Api_HostAddress}}/api/routes/generate
+POST {{Navisio.Api_HostAddress}}/api/decision/discover
 Content-Type: application/json
 
 {
-  "passportCountry": "Turkey",
-  "totalBudget": 1000,
-  "durationDays": 7
+  "passport": "TR",
+  "budgetLimit": "< $1500",
+  "duration": "5–7 days",
+  "region": "Europe"
 }

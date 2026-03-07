@@ -190,15 +190,15 @@ export const DiscoverPage = () => {
             {!result && !isGenerating && !error && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-20">
                     <div className="flex items-center justify-center space-x-4 mb-6">
-                        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400 rounded-2xl flex items-center justify-center transform rotate-12 shadow-sm">
+                        <div className="w-16 h-16 bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400 rounded-2xl flex items-center justify-center transform rotate-12 ">
                             <Plane size={32} />
                         </div>
-                        <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 rounded-2xl flex items-center justify-center transform -rotate-12 shadow-sm">
+                        <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 rounded-2xl flex items-center justify-center transform -rotate-12 ">
                             <Globe2 size={32} />
                         </div>
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Ready to Orchestrate</h3>
-                    <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto shadow-sm">
+                    <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto ">
                         Adjust your parameters above and click "Generate" to let the Decision Engine dynamically calculate the best routes for you.
                     </p>
                 </motion.div>
@@ -220,13 +220,13 @@ export const DiscoverPage = () => {
                         <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-500/10 border-blue-100 dark:border-blue-500/20">
                             <div className="flex flex-col sm:flex-row gap-5 items-start">
                                 <div className="mt-1 flex-shrink-0">
-                                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center shadow-sm">
+                                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center ">
                                         <Globe2 size={24} />
                                     </div>
                                 </div>
                                 <div className="w-full">
                                     <h3 className="text-lg font-extrabold text-gray-900 dark:text-white mb-3">Orchestrator Analysis</h3>
-                                    <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2 whitespace-pre-line bg-white/50 dark:bg-black/20 p-4 rounded-xl shadow-sm border border-blue-100/50 dark:border-blue-500/10">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2 whitespace-pre-line bg-white/50 dark:bg-black/20 p-4 rounded-xl  border border-blue-100/50 dark:border-blue-500/10">
                                         {result.explanation}
                                     </div>
                                 </div>
@@ -263,18 +263,18 @@ export const DiscoverPage = () => {
                                             </div>
 
                                             {/* Ticket Detail */}
-                                            <div className="bg-gray-50 dark:bg-gray-800/80 rounded-xl p-5 min-w-[280px] border border-gray-100 dark:border-gray-700/50 shadow-sm">
+                                            <div className="bg-gray-50 dark:bg-gray-800/80 rounded-xl p-5 min-w-[280px] border border-gray-100 dark:border-gray-700/50 ">
                                                 <div className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3 font-bold flex items-center justify-between">
                                                     Your Ticket Data
                                                     <Plane size={14} />
                                                 </div>
                                                 {result.winner.memberTickets.map((t, idx) => (
                                                     <div key={idx} className="space-y-2">
-                                                        <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-3 py-2 rounded-md shadow-sm border border-gray-100 dark:border-gray-800">
+                                                        <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-3 py-2 rounded-md  border border-gray-100 dark:border-gray-800">
                                                             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Route</span>
                                                             <span className="text-sm font-bold text-gray-900 dark:text-white">{t.origin} <span className="text-gray-400 mx-1">➔</span> {t.destination}</span>
                                                         </div>
-                                                        <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-3 py-2 rounded-md shadow-sm border border-gray-100 dark:border-gray-800">
+                                                        <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-3 py-2 rounded-md  border border-gray-100 dark:border-gray-800">
                                                             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">Visa Rules</span>
                                                             <span className={`text-sm font-bold px-2 rounded ${t.visaRequired ? 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' : 'text-green-600 bg-green-50 dark:bg-green-500/10'}`}>
                                                                 {t.visaType}
@@ -296,7 +296,7 @@ export const DiscoverPage = () => {
                                             </h2>
                                             <div className="space-y-4">
                                                 {result.alternatives.map((alt, idx) => (
-                                                    <Card key={idx} hoverEffect className="p-5 border border-gray-100 dark:border-gray-700/50 shadow-sm relative overflow-hidden group">
+                                                    <Card key={idx} hoverEffect className="p-5 border border-gray-100 dark:border-gray-700/50  relative overflow-hidden group">
                                                         <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50 group-hover:bg-blue-500 transition-colors"></div>
                                                         <div className="flex justify-between items-center pl-2">
                                                             <div>
@@ -327,7 +327,7 @@ export const DiscoverPage = () => {
                                             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                                 <XCircle size={22} className="text-red-500" /> Removed by Engine
                                             </h2>
-                                            <Card className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-gray-900 border-red-100 dark:border-red-500/20 shadow-sm p-0 overflow-hidden">
+                                            <Card className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-gray-900 border-red-100 dark:border-red-500/20  p-0 overflow-hidden">
                                                 <div className="divide-y divide-red-100 dark:divide-red-900/30">
                                                     {Object.entries(result.eliminatedReasons).map(([code, reason]) => (
                                                         <div key={code} className="flex gap-4 text-sm p-4 hover:bg-red-50/50 dark:hover:bg-red-500/5 transition-colors">

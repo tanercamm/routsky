@@ -72,7 +72,7 @@ export const RouteCard = ({ option, index, onSave, saved }: RouteCardProps) => {
                             e.stopPropagation();
                             setIsDetailsOpen(true);
                         }}
-                        className="h-7 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-[11px] font-black uppercase tracking-widest rounded transition-all border border-gray-300 dark:border-gray-600 shadow-sm flex items-center"
+                        className="h-7 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-[11px] font-black uppercase tracking-widest rounded transition-all border border-gray-300 dark:border-gray-600  flex items-center"
                     >
                         VIEW DETAILS &rarr;
                     </button>

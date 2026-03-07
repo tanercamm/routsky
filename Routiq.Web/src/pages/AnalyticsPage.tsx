@@ -40,7 +40,7 @@ export const AnalyticsPage = () => {
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
                 <BarChart3 size={48} className="text-gray-300 dark:text-gray-600 mb-4" />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Analytics Available</h2>
-                <p className="text-gray-500 dark:text-gray-400 max-w-sm">Travel with Routiq to generate real insights about your journeys.</p>
+                <p className="text-gray-500 dark:text-gray-400 max-w-sm">Travel with Navisio to generate real insights about your journeys.</p>
             </div>
         );
     }

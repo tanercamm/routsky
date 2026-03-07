@@ -81,7 +81,7 @@ export default function RouteDetailsModal({ trip, onClose, onSave }: any) {
       className="fixed inset-0 z-[99990] flex items-center justify-center bg-black/50 dark:bg-black/90 p-4 transition-colors duration-300"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="bg-white dark:bg-[#1A1E23] w-full max-w-3xl max-h-[90vh] rounded-xl border border-gray-200 dark:border-gray-600 flex flex-col shadow-2xl overflow-hidden">
+      <div className="bg-white dark:bg-[#1A1E23] w-full max-w-3xl max-h-[90vh] rounded-xl border border-gray-200 dark:border-gray-600 flex flex-col  overflow-hidden">
 
         {/* HEADER */}
         <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 p-5 border-b border-gray-200 dark:border-gray-700 shrink-0">
@@ -97,13 +97,13 @@ export default function RouteDetailsModal({ trip, onClose, onSave }: any) {
 
           {/* Agent Insight (Orchestrator Injection Point) */}
           <div className="bg-indigo-50/50 dark:bg-indigo-900/10 p-5 rounded-xl border border-indigo-100 dark:border-indigo-800/30 relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg tracking-widest uppercase shadow-sm">
+            <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-bl-lg tracking-widest uppercase ">
               Live Agent Insight
             </div>
             <h3 className="font-bold mb-2 text-indigo-800 dark:text-indigo-300 text-lg flex items-center gap-2">
               <span>🧠</span> Orchestrator's Real-Time Analysis
             </h3>
-            <p className="leading-relaxed text-indigo-900 dark:text-indigo-200 font-medium flex items-start gap-3 mt-3 bg-white/40 dark:bg-black/20 p-3 rounded-lg border border-indigo-200/50 dark:border-indigo-700/30 shadow-inner">
+            <p className="leading-relaxed text-indigo-900 dark:text-indigo-200 font-medium flex items-start gap-3 mt-3 bg-white/40 dark:bg-black/20 p-3 rounded-lg border border-indigo-200/50 dark:border-indigo-700/30 ">
               {trip?.agentInsight || dynamicInsight ? (
                 <span className="text-sm">{trip?.agentInsight || dynamicInsight}</span>
               ) : (
@@ -166,7 +166,7 @@ export default function RouteDetailsModal({ trip, onClose, onSave }: any) {
               }
             }}
             disabled={isSavedLocal}
-            className={`px-6 py-2.5 font-bold rounded-lg transition-colors shadow-none text-sm ${isSavedLocal
+            className={`px-6 py-2.5 font-bold rounded-lg transition-colors  text-sm ${isSavedLocal
               ? 'bg-green-600 text-white cursor-not-allowed'
               : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
@@ -180,7 +180,7 @@ export default function RouteDetailsModal({ trip, onClose, onSave }: any) {
               e.stopPropagation();
               setIsThyModalOpen(true);
             }}
-            className="px-5 py-2.5 bg-[#E60000] hover:bg-[#CC0000] text-white font-bold rounded-lg transition-colors shadow-none flex items-center gap-2 text-sm"
+            className="px-5 py-2.5 bg-[#E60000] hover:bg-[#CC0000] text-white font-bold rounded-lg transition-colors  flex items-center gap-2 text-sm"
           >
             ✈️ Check THY Flights
           </button>

@@ -197,7 +197,7 @@ export function FindRoutePage() {
           transition={{ duration: 0.4 }}
           className="lg:col-span-4 lg:sticky lg:top-20 lg:h-[calc(100vh-10rem)] mb-8 flex flex-col"
         >
-          <div className="bg-white dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/60 rounded-xl p-5 shadow-sm space-y-4 h-full flex-1 overflow-y-auto custom-scrollbar">
+          <div className="bg-white dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/60 rounded-xl p-5  space-y-4 h-full flex-1 overflow-y-auto custom-scrollbar">
 
             <div className="flex items-center gap-2 mb-0.5">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
@@ -310,7 +310,7 @@ export function FindRoutePage() {
               id="generate-route-btn"
               onClick={handleGenerate}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-600 disabled:opacity-60 text-white font-semibold rounded-xl px-4 py-2 text-sm border border-teal-600/50 hover:border-teal-400/70 shadow-none transition-colors duration-200 mt-2"
+              className="w-full flex items-center justify-center gap-2 bg-teal-700 hover:bg-teal-600 disabled:opacity-60 text-white font-semibold rounded-xl px-4 py-2 text-sm border border-teal-600/50 hover:border-teal-400/70  transition-colors duration-200 mt-2"
             >
               {loading ? (
                 <><Loader2 size={16} className="animate-spin" /> Generating Route...</>
@@ -324,7 +324,7 @@ export function FindRoutePage() {
 
         {/* RIGHT: Output & Explanation */}
         <div className="lg:col-span-8 lg:h-[calc(100vh-10rem)] mb-8">
-          <div className="bg-white dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/60 rounded-xl p-5 shadow-sm h-full overflow-y-auto custom-scrollbar">
+          <div className="bg-white dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/60 rounded-xl p-5  h-full overflow-y-auto custom-scrollbar">
             <div className="space-y-4">
 
               <AnimatePresence mode="wait">
@@ -400,7 +400,7 @@ export function FindRoutePage() {
                             <span className="text-xl">🏆</span>
                             <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">Logical Winner</h2>
                           </div>
-                          <div className="bg-white dark:bg-gray-800/60 border-2 border-green-500/30 dark:border-green-500/40 rounded-2xl overflow-hidden shadow-sm relative">
+                          <div className="bg-white dark:bg-gray-800/60 border-2 border-green-500/30 dark:border-green-500/40 rounded-2xl overflow-hidden  relative">
                             <div className="p-5 relative z-10">
                               <div className="flex flex-col md:flex-row justify-between gap-5">
                                 <div className="flex-1">
@@ -420,22 +420,22 @@ export function FindRoutePage() {
                                   </div>
                                 </div>
 
-                                <div className="bg-gray-50 dark:bg-gray-800/80 rounded-xl p-4 min-w-[260px] border border-gray-100 dark:border-gray-700/50 shadow-sm">
+                                <div className="bg-gray-50 dark:bg-gray-800/80 rounded-xl p-4 min-w-[260px] border border-gray-100 dark:border-gray-700/50 ">
                                   <div className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 font-bold flex items-center justify-between">
                                     Your Ticket Data
                                     <Plane size={12} />
                                   </div>
                                   {result!.winner!.memberTickets.map((t, idx) => (
                                     <div key={idx} className="space-y-1.5 mb-2">
-                                      <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-md shadow-sm border border-gray-100 dark:border-gray-800">
+                                      <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-md  border border-gray-100 dark:border-gray-800">
                                         <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Route</span>
                                         <span className="text-xs font-bold text-gray-900 dark:text-white">{t.origin} <span className="text-gray-400 mx-0.5">➔</span> {t.destination}</span>
                                       </div>
-                                      <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-md shadow-sm border border-gray-100 dark:border-gray-800">
+                                      <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-md  border border-gray-100 dark:border-gray-800">
                                         <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Cost</span>
                                         <span className="text-xs font-bold text-green-600">{currencySymbol}{formatPx(t.costUsd)}</span>
                                       </div>
-                                      <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-md shadow-sm border border-gray-100 dark:border-gray-800">
+                                      <div className="flex justify-between items-center bg-white dark:bg-gray-900 px-2.5 py-1.5 rounded-md  border border-gray-100 dark:border-gray-800">
                                         <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">Visa</span>
                                         <span className={`text-xs font-bold px-1.5 rounded ${t.visaRequired ? 'text-amber-600 bg-amber-50 dark:bg-amber-500/10' : 'text-green-600 bg-green-50 dark:bg-green-500/10'}`}>
                                           {t.visaType}
@@ -448,7 +448,7 @@ export function FindRoutePage() {
                               <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50 flex justify-end">
                                 <button
                                   onClick={() => setDetailsTarget(result!.winner!)}
-                                  className="h-7 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-[11px] font-black uppercase tracking-widest rounded transition-all border border-gray-300 dark:border-gray-600 shadow-sm flex items-center gap-1"
+                                  className="h-7 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-[11px] font-black uppercase tracking-widest rounded transition-all border border-gray-300 dark:border-gray-600  flex items-center gap-1"
                                 >
                                   VIEW DETAILS →
                                 </button>
@@ -471,7 +471,7 @@ export function FindRoutePage() {
                                   initial={{ opacity: 0, y: 8 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ delay: idx * 0.08 }}
-                                  className="bg-white dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/60 rounded-xl p-4 shadow-sm relative overflow-hidden group"
+                                  className="bg-white dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/60 rounded-xl p-4  relative overflow-hidden group"
                                 >
                                   <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50 group-hover:bg-blue-500 transition-colors" />
                                   <div className="flex justify-between items-center pl-2">
@@ -490,7 +490,7 @@ export function FindRoutePage() {
                                       </div>
                                       <button
                                         onClick={() => setDetailsTarget(alt)}
-                                        className="h-7 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-[10px] font-black uppercase tracking-widest rounded transition-all border border-gray-300 dark:border-gray-600 shadow-sm shrink-0"
+                                        className="h-7 px-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 text-[10px] font-black uppercase tracking-widest rounded transition-all border border-gray-300 dark:border-gray-600  shrink-0"
                                       >
                                         DETAILS →
                                       </button>
@@ -526,7 +526,7 @@ export function FindRoutePage() {
                             {Object.keys(result!.eliminatedReasons).length} eliminated
                           </span>
                         </div>
-                        <div className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-gray-900 border border-red-100 dark:border-red-500/20 rounded-xl overflow-hidden shadow-sm">
+                        <div className="bg-gradient-to-br from-red-50 to-white dark:from-red-950/20 dark:to-gray-900 border border-red-100 dark:border-red-500/20 rounded-xl overflow-hidden ">
                           <div className="divide-y divide-red-100 dark:divide-red-900/30">
                             {Object.entries(result!.eliminatedReasons).map(([code, reason]) => (
                               <div key={code} className="flex gap-3 text-xs p-3 hover:bg-red-50/50 dark:hover:bg-red-500/5 transition-colors">
@@ -559,7 +559,7 @@ export function FindRoutePage() {
             totalBudgetUsd: detailsTarget.avgCostUsd,
             durationDays: form.durationDays,
             visaStatus: detailsTarget.memberTickets?.[0]?.visaRequired ? 'VISA REQUIRED' : 'VISA-FREE',
-            description: `${detailsTarget.city} scored ${detailsTarget.compositeScore}/100 in the Routiq Decision Engine. Flight from ${detailsTarget.memberTickets?.[0]?.origin || 'IST'} costs $${detailsTarget.avgCostUsd} round-trip and takes ${detailsTarget.avgFlightTime}. Visa status: ${detailsTarget.memberTickets?.[0]?.visaType || 'Unknown'}.`,
+            description: `${detailsTarget.city} scored ${detailsTarget.compositeScore}/100 in the Navisio Decision Engine. Flight from ${detailsTarget.memberTickets?.[0]?.origin || 'IST'} costs $${detailsTarget.avgCostUsd} round-trip and takes ${detailsTarget.avgFlightTime}. Visa status: ${detailsTarget.memberTickets?.[0]?.visaType || 'Unknown'}.`,
             itinerary: [
               `Day 1: Arrive in ${detailsTarget.city} — hotel check-in & neighborhood walk`,
               `Day 2: ${detailsTarget.city} city highlights & cultural landmarks`,

@@ -80,7 +80,7 @@ const GlobeScene = memo(function GlobeScene({ width, height, labelsData, onPoint
       pointColor={getPointColor}
       pointAltitude={0.01}
       pointRadius={getPointRadius}
-      pointsMerge={false}
+      pointsMerge={true}
       onPointClick={onPointClick}
 
       labelsData={labelsData}
@@ -188,11 +188,13 @@ export function HomePage() {
     const city = point as CityPoint;
     const controls = globeRef.current?.controls();
     if (controls) controls.autoRotate = false;
-    
-    // Fix: Make Three.js raycasting logic asynchronous by yielding the React render cycle
-    startTransition(() => {
-      setSelected(city);
-    });
+
+    // Fix: Defer state update to avoid blocking Three.js raycasting cycle
+    setTimeout(() => {
+      startTransition(() => {
+        setSelected(city);
+      });
+    }, 0);
   }, []);
 
   const handleDismiss = useCallback(() => {
@@ -235,7 +237,7 @@ export function HomePage() {
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-teal-500/70 animate-pulse" />
             <span className="text-[10px] font-bold tracking-[0.25em] text-slate-400 uppercase">
-              Routiq Mission Control
+              Navisio Mission Control
             </span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-none">
@@ -418,7 +420,7 @@ export function HomePage() {
                   </div>
                 ) : (
                   <div className="text-center py-2">
-                    <p className="text-[11px] text-gray-500">Capital city — not yet in Routiq network</p>
+                    <p className="text-[11px] text-gray-500">Capital city — not yet in Navisio network</p>
                     <p className="text-[10px] text-gray-600 mt-1">Coming soon to Mission Control</p>
                   </div>
                 )}
@@ -428,7 +430,7 @@ export function HomePage() {
                     <span className="text-[9px] text-gray-600 tracking-wider">
                       {selected.lat.toFixed(2)}°{selected.lat >= 0 ? 'N' : 'S'}, {Math.abs(selected.lng).toFixed(2)}°{selected.lng >= 0 ? 'E' : 'W'}
                     </span>
-                    <span className="text-[9px] text-teal-500/40 tracking-wider uppercase">Routiq Intel</span>
+                    <span className="text-[9px] text-teal-500/40 tracking-wider uppercase">Navisio Intel</span>
                   </div>
                 </div>
               </div>

@@ -122,7 +122,7 @@ export const ItineraryModal = ({ route, onClose }: ItineraryModalProps) => {
 
                     {/* Modal */}
                     <motion.div
-                        className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl"
+                        className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl "
                         initial={{ opacity: 0, scale: 0.92, y: 30 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.92, y: 30 }}
@@ -143,7 +143,7 @@ export const ItineraryModal = ({ route, onClose }: ItineraryModalProps) => {
                                         disabled={saved}
                                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${saved
                                             ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20 cursor-default'
-                                            : 'bg-teal-600 hover:bg-teal-500 text-white shadow-sm'
+                                            : 'bg-teal-600 hover:bg-teal-500 text-white '
                                             }`}
                                     >
                                         {saved ? <><Check size={16} /> Saved</> : <><Bookmark size={16} /> Save Trip</>}
@@ -445,10 +445,10 @@ export const ItineraryModal = ({ route, onClose }: ItineraryModalProps) => {
                                 {/* THY Live Flight Data Button */}
                                 <button
                                     onClick={() => setIsLiveFlightModalOpen(true)}
-                                    className="flex-1 sm:flex-none relative overflow-hidden group bg-gray-900 hover:bg-black dark:bg-black dark:hover:bg-gray-900 text-white font-medium text-sm px-4 py-2 rounded-lg border border-gray-800 dark:border-gray-700 shadow-sm transition-all duration-300 flex items-center justify-center gap-2"
+                                    className="flex-1 sm:flex-none relative overflow-hidden group bg-gray-900 hover:bg-black dark:bg-black dark:hover:bg-gray-900 text-white font-medium text-sm px-4 py-2 rounded-lg border border-gray-800 dark:border-gray-700  transition-all duration-300 flex items-center justify-center gap-2"
                                 >
                                     <div className="absolute inset-0 w-1/4 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:animate-shimmer" />
-                                    <div className="relative flex items-center justify-center bg-red-600 rounded-full w-4 h-4 shrink-0 shadow-sm border border-red-500">
+                                    <div className="relative flex items-center justify-center bg-red-600 rounded-full w-4 h-4 shrink-0  border border-red-500">
                                         <span className="text-[10px] text-white">✈️</span>
                                     </div>
                                     <span className="tracking-wide text-xs sm:text-sm">Check Live THY Flights</span>
@@ -469,7 +469,7 @@ export const ItineraryModal = ({ route, onClose }: ItineraryModalProps) => {
                                     disabled={saved}
                                     className={`flex items-center justify-center sm:justify-start gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all flex-1 sm:flex-none ${saved
                                         ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20 cursor-default'
-                                        : 'bg-teal-600 hover:bg-teal-500 text-white shadow-sm'
+                                        : 'bg-teal-600 hover:bg-teal-500 text-white '
                                         }`}
                                 >
                                     {saved ? <><Check size={16} /> Saved</> : <><Bookmark size={16} /> Save Trip</>}
@@ -485,7 +485,7 @@ export const ItineraryModal = ({ route, onClose }: ItineraryModalProps) => {
                                 initial={{ opacity: 0, y: 40 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: 40 }}
-                                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 text-sm font-medium"
+                                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-emerald-600 text-white px-5 py-3 rounded-xl  flex items-center gap-2 text-sm font-medium"
                             >
                                 <Check size={16} /> Trip saved successfully!
                             </motion.div>

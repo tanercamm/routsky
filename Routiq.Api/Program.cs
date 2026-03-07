@@ -21,8 +21,6 @@ builder.Services.AddCors(options =>
 builder.Services.AddDbContext<RoutiqDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ── V2 Services ──
-builder.Services.AddScoped<IRouteGenerator, RouteGenerator>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 // ── MCP Decision Services (Agent-as-Orchestrator) ──
@@ -73,7 +71,10 @@ builder.Services.AddControllers()
         opts.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v2", new Microsoft.OpenApi.Models.OpenApiInfo { Title = "Navisio API", Version = "v2" });
+});
 
 var app = builder.Build();
 

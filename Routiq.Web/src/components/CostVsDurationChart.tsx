@@ -22,7 +22,7 @@ export const CostVsDurationChart = ({ data }: CostVsDurationChartProps) => {
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-lg shadow-md">
+                <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-lg ">
                     <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{label}</p>
                     <p className="text-teal-600 dark:text-teal-400 font-medium text-sm mt-1">
                         Cost: ${payload[0].value.toLocaleString()}
@@ -44,7 +44,7 @@ export const CostVsDurationChart = ({ data }: CostVsDurationChartProps) => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="w-full h-[300px] mb-6 bg-white dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700/60 shadow-sm p-6"
+            className="w-full h-[300px] mb-6 bg-white dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700/60  p-6"
         >
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Cost Comparison</h3>
             <ResponsiveContainer width="100%" height="100%">

@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 using Routiq.Api.Data;
 
 namespace Routiq.Api.Services;
@@ -366,11 +367,28 @@ Respond STRICTLY in JSON matching this exact C# schema, NO markdown wrapping.
         try
         {
             _logger.LogInformation("Invoking Gemini AI for decision prompt ({CandidateCount} candidates)", storedTickets.Count);
-            var response = await _kernel.InvokePromptAsync(prompt);
-            var json = response.GetValue<string>() ?? "{}";
+            var chatService = _kernel.GetRequiredService<IChatCompletionService>();
+            var history = new ChatHistory();
+            history.AddUserMessage(prompt);
 
-            if (json.StartsWith("```json")) json = json.Substring(7, json.Length - 10);
-            else if (json.StartsWith("```")) json = json.Substring(3, json.Length - 6);
+            var executionSettings = new PromptExecutionSettings
+            {
+                ExtensionData = new Dictionary<string, object> { { "temperature", 0.2 }, { "topP", 0.95 } }
+            };
+
+            var response = await chatService.GetChatMessageContentAsync(history, executionSettings);
+            var json = response.Content ?? "{}";
+            json = json.Trim();
+
+            if (json.StartsWith("```"))
+            {
+                var firstNewline = json.IndexOf('\n');
+                var lastBackticks = json.LastIndexOf("```");
+                if (firstNewline != -1 && lastBackticks > firstNewline)
+                {
+                    json = json.Substring(firstNewline + 1, lastBackticks - firstNewline - 1).Trim();
+                }
+            }
 
             var result = JsonSerializer.Deserialize<DecisionResult>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (result != null)

@@ -111,9 +111,9 @@ export const SettingsPage = () => {
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
-                        className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm font-medium border ${toastMessage.type === 'success'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
-                                : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
+                        className={`fixed top-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 rounded-lg  text-sm font-medium border ${toastMessage.type === 'success'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+                            : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
                             }`}
                     >
                         {toastMessage.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
@@ -148,7 +148,7 @@ export const SettingsPage = () => {
                 </aside>
 
                 {/* Main Content Area */}
-                <div className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 md:p-8 shadow-sm">
+                <div className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 md:p-8 ">
                     <AnimatePresence mode="wait">
                         {activeTab === 'account' && (
                             <motion.div
@@ -239,13 +239,13 @@ export const SettingsPage = () => {
                                         <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
                                             <button
                                                 onClick={() => theme === 'dark' && toggleTheme()}
-                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${theme === 'light' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-white'}`}
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${theme === 'light' ? 'bg-white text-gray-900 ' : 'text-gray-500 hover:text-white'}`}
                                             >
                                                 Light
                                             </button>
                                             <button
                                                 onClick={() => theme === 'light' && toggleTheme()}
-                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${theme === 'dark' ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${theme === 'dark' ? 'bg-gray-700 text-white ' : 'text-gray-500 hover:text-gray-900'}`}
                                             >
                                                 Dark
                                             </button>
@@ -257,7 +257,7 @@ export const SettingsPage = () => {
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                         <div>
                                             <h3 className="text-sm font-medium text-gray-900 dark:text-white">Default Currency</h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Prices across Routiq will be displayed in this currency.</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Prices across Navisio will be displayed in this currency.</p>
                                         </div>
                                         <select
                                             value={currency}
@@ -280,13 +280,13 @@ export const SettingsPage = () => {
                                         <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 w-full sm:w-auto">
                                             <button
                                                 onClick={() => setUnits('Metric')}
-                                                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all ${units === 'Metric' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+                                                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all ${units === 'Metric' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white ' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
                                             >
                                                 Metric (°C, km)
                                             </button>
                                             <button
                                                 onClick={() => setUnits('Imperial')}
-                                                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all ${units === 'Imperial' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+                                                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-medium transition-all ${units === 'Imperial' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white ' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
                                             >
                                                 Imperial (°F, mi)
                                             </button>

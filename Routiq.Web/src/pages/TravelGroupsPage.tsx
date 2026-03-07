@@ -226,7 +226,7 @@ export const TravelGroupsPage = () => {
                         exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                         className="overflow-hidden"
                     >
-                        <Card className="border-teal-100 dark:border-teal-900/30 bg-teal-50/30 dark:bg-teal-900/10 p-6 flex flex-col md:flex-row items-end gap-4 shadow-sm">
+                        <Card className="border-teal-100 dark:border-teal-900/30 bg-teal-50/30 dark:bg-teal-900/10 p-6 flex flex-col md:flex-row items-end gap-4 ">
                             <div className="flex-1 w-full">
                                 <Input
                                     label="Workspace Name"
@@ -255,7 +255,7 @@ export const TravelGroupsPage = () => {
                         exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                         className="overflow-hidden"
                     >
-                        <Card className="border-gray-200 dark:border-gray-700/50 p-6 flex flex-col md:flex-row items-end gap-4 shadow-sm bg-gray-50/50 dark:bg-gray-800/50">
+                        <Card className="border-gray-200 dark:border-gray-700/50 p-6 flex flex-col md:flex-row items-end gap-4  bg-gray-50/50 dark:bg-gray-800/50">
                             <div className="flex-1 w-full">
                                 <Input
                                     label="Workspace Invite Code"

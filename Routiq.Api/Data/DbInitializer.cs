@@ -419,10 +419,10 @@ public static class DbInitializer
 
         var user1 = new User
         {
-            Email = "admin@routiq.com",
+            Email = "admin@navisio.com",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
             FirstName = "Admin",
-            LastName = "Routiq",
+            LastName = "Navisio",
             Role = "Admin",
             CreatedAt = new DateTime(2026, 2, 25, 0, 0, 0, DateTimeKind.Utc)
         };
@@ -442,7 +442,7 @@ public static class DbInitializer
 
         var user2 = new User
         {
-            Email = "arjun@routiq.app",
+            Email = "arjun@navisio.app",
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("User123!"),
             FirstName = "Arjun",
             LastName = "Demo",

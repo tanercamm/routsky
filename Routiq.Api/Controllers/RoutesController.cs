@@ -13,31 +13,13 @@ namespace Routiq.Api.Controllers;
 [Route("api/[controller]")]
 public class RoutesController : ControllerBase
 {
-    private readonly IRouteGenerator _routeGenerator;
     private readonly RoutiqDbContext _context;
 
-    public RoutesController(IRouteGenerator routeGenerator, RoutiqDbContext context)
+    public RoutesController(RoutiqDbContext context)
     {
-        _routeGenerator = routeGenerator;
         _context = context;
     }
 
-    /// <summary>
-    /// Generates route options based on passport, budget, days, and region preference.
-    /// Returns viable routes AND a list of eliminated destinations with reasons.
-    /// </summary>
-    [HttpPost("generate")]
-    public async Task<ActionResult<RouteResponseDto>> GenerateRoutes([FromBody] RouteRequestDto request)
-    {
-        if (request.TotalBudgetUsd <= 0 || request.DurationDays <= 0)
-            return BadRequest("Budget and duration must be positive.");
-
-        if (request.Passports == null || request.Passports.Count == 0)
-            return BadRequest("At least one passport country code is required.");
-
-        var result = await _routeGenerator.GenerateRoutesAsync(request);
-        return Ok(result);
-    }
 
     /// <summary>
     /// Saves a route (from the engine's output) to the user's profile.

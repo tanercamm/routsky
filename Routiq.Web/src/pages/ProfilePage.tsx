@@ -418,7 +418,7 @@ export const ProfilePage = () => {
                                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md overflow-hidden"
+                                className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl  p-8 w-full max-w-md overflow-hidden"
                             >
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">Profile Picture</h3>
@@ -433,7 +433,7 @@ export const ProfilePage = () => {
 
                                 <div className="flex flex-col items-center justify-center py-2 space-y-8">
                                     {/* Jumbo Avatar Display */}
-                                    <div className="w-72 h-72 rounded-full overflow-hidden ring-4 ring-gray-100 dark:ring-gray-800 shadow-2xl relative">
+                                    <div className="w-72 h-72 rounded-full overflow-hidden ring-4 ring-gray-100 dark:ring-gray-800  relative">
                                         {isUploading && (
                                             <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center backdrop-blur-sm">
                                                 <Loader2 size={32} className="text-white animate-spin" />
@@ -482,7 +482,7 @@ export const ProfilePage = () => {
                                                 <button
                                                     onClick={handleSaveAvatar}
                                                     disabled={isUploading}
-                                                    className="flex-1 py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl shadow-sm transition-colors flex justify-center items-center disabled:opacity-50"
+                                                    className="flex-1 py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl  transition-colors flex justify-center items-center disabled:opacity-50"
                                                 >
                                                     {isUploading ? <Loader2 size={18} className="animate-spin" /> : "Save Picture"}
                                                 </button>

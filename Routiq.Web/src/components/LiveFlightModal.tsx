@@ -84,7 +84,7 @@ export default function LiveFlightModal({ destination, origin, ticketData, onClo
         <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all duration-300" onClick={(e) => e.stopPropagation()}>
 
             {/* THEME-AWARE MODAL SHELL */}
-            <div className="bg-white dark:bg-[#1A1E23] w-full max-w-4xl rounded-2xl border border-gray-200 dark:border-gray-700 p-8 relative flex flex-col max-h-[90vh] shadow-2xl transition-colors duration-300" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white dark:bg-[#1A1E23] w-full max-w-4xl rounded-2xl border border-gray-200 dark:border-gray-700 p-8 relative flex flex-col max-h-[90vh]  transition-colors duration-300" onClick={(e) => e.stopPropagation()}>
 
                 {/* Close Button */}
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white text-3xl font-light">&times;</button>
@@ -115,7 +115,7 @@ export default function LiveFlightModal({ destination, origin, ticketData, onClo
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 overflow-hidden">
 
                         {/* LEFT PANEL - Flight Details */}
-                        <div className="bg-gray-50 dark:bg-slate-900/50 p-6 rounded-xl border border-gray-200 dark:border-slate-700/50 flex flex-col justify-between transition-colors duration-300 shadow-inner">
+                        <div className="bg-gray-50 dark:bg-slate-900/50 p-6 rounded-xl border border-gray-200 dark:border-slate-700/50 flex flex-col justify-between transition-colors duration-300 ">
                             <div>
                                 <div className="text-[10px] font-bold text-gray-500 dark:text-slate-400 tracking-widest uppercase mb-4">
                                     Best Flight Option
@@ -143,7 +143,7 @@ export default function LiveFlightModal({ destination, origin, ticketData, onClo
                             {/* Price Display */}
                             <div>
                                 <div className="flex flex-col mb-6">
-                                    <div className="text-4xl font-black text-[#E60000] drop-shadow-sm flex items-end gap-2">
+                                    <div className="text-4xl font-black text-[#E60000]  flex items-end gap-2">
                                         ${flightData?.costUsd || '—'} <span className="text-2xl font-bold mb-1">USD</span>
                                         {flightData?.isEstimate && (
                                             <span className="text-[10px] bg-yellow-100 dark:bg-yellow-600/20 text-yellow-700 dark:text-yellow-500 px-2 py-1 rounded ml-1 mb-1 border border-yellow-300 dark:border-yellow-600/50 tracking-wider uppercase font-bold">
@@ -166,7 +166,7 @@ export default function LiveFlightModal({ destination, origin, ticketData, onClo
                                         }, 1500);
                                     }}
                                     disabled={isRedirecting}
-                                    className={`w-full py-3 font-bold rounded-lg transition-colors shadow-none text-sm flex items-center justify-center gap-2 ${isRedirecting
+                                    className={`w-full py-3 font-bold rounded-lg transition-colors  text-sm flex items-center justify-center gap-2 ${isRedirecting
                                         ? 'bg-red-800 text-white cursor-wait opacity-90'
                                         : 'bg-[#E60000] hover:bg-[#CC0000] text-white'
                                         }`}
@@ -187,7 +187,7 @@ export default function LiveFlightModal({ destination, origin, ticketData, onClo
                         </div>
 
                         {/* PREMIUM THY FLIGHT RADAR VISUALIZATION */}
-                        <div className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-gray-200 dark:border-slate-800 flex flex-col h-full min-h-[220px] shadow-inner relative overflow-hidden transition-colors duration-300">
+                        <div className="bg-white dark:bg-slate-950 p-6 rounded-xl border border-gray-200 dark:border-slate-800 flex flex-col h-full min-h-[220px]  relative overflow-hidden transition-colors duration-300">
 
                             <style>{`
                                 @keyframes smoothArcFly {
@@ -212,7 +212,7 @@ export default function LiveFlightModal({ destination, origin, ticketData, onClo
 
                             {/* Visualization Canvas */}
                             <div className="relative w-full h-32 flex items-center justify-center mb-6">
-                                <svg viewBox="0 0 200 100" className="w-full h-full drop-shadow-[0_2px_4px_rgba(0,0,0,0.1)] dark:drop-shadow-none">
+                                <svg viewBox="0 0 200 100" className="w-full h-full  dark:">
 
                                     {/* Background Grid */}
                                     <defs>
