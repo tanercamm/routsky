@@ -441,7 +441,7 @@ export const ProfilePage = () => {
                                         )}
 
                                         {(previewUrl || user?.avatarUrl) ? (
-                                            <img src={previewUrl || user?.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                                            <img src={previewUrl || user?.avatarUrl || undefined} alt="Profile" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full bg-gradient-to-br from-teal-400 to-blue-500 flex items-center justify-center">
                                                 <User size={48} className="text-white" />

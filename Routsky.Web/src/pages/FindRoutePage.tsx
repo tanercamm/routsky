@@ -149,6 +149,7 @@ export function FindRoutePage() {
     try {
       const response = await routskyApi.post('/decision/discover', {
         passport: form.passports[0] || 'TR',
+        origin: user?.origin || '',
         budgetLimit: mapBudgetToDiscover(form.budgetBracket, form.totalBudgetUsd),
         duration: mapDurationToDiscover(form.durationDays),
         region: mapRegionToDiscover(form.regionPreference),
@@ -166,6 +167,9 @@ export function FindRoutePage() {
     }
   };
 
+  const validAlternatives = (result?.alternatives ?? []).filter(
+    a => a.city && a.avgCostUsd > 0
+  );
   const hasResult = result !== null;
   const hasWinner = hasResult && result.winner?.destinationCode;
   const hasEliminations = hasResult && Object.keys(result.eliminatedReasons).length > 0;
@@ -458,14 +462,14 @@ export function FindRoutePage() {
                         </section>
 
                         {/* Alternatives */}
-                        {result!.alternatives.length > 0 && (
+                        {validAlternatives.length > 0 && (
                           <section>
                             <div className="flex items-center gap-2 mb-3">
                               <span className="text-xl">🥈</span>
                               <h2 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wide">Strong Alternatives</h2>
                             </div>
                             <div className="space-y-2">
-                              {result!.alternatives.map((alt, idx) => (
+                              {validAlternatives.map((alt, idx) => (
                                 <motion.div
                                   key={idx}
                                   initial={{ opacity: 0, y: 8 }}

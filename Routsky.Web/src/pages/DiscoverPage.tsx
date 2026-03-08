@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Calendar, DollarSign, Plane, Globe2, AlertCircle, XCircle } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { routskyApi } from '../api/routskyApi';
+import { useAuth } from '../context/AuthContext';
 
 const REGIONS = ['All', 'Europe', 'Asia', 'Africa', 'North America', 'South America', 'Oceania'];
 const BUDGET_LIMITS = ['Any', '< $500', '< $1000', '< $1500'];
@@ -40,6 +41,7 @@ interface DecisionResult {
 }
 
 export const DiscoverPage = () => {
+    const { user } = useAuth();
     const [passport, setPassport] = useState('TR');
     const [region, setRegion] = useState('All');
     const [budgetLimit, setBudgetLimit] = useState('Any');
@@ -57,6 +59,7 @@ export const DiscoverPage = () => {
         try {
             const response = await routskyApi.post('/decision/discover', {
                 passport,
+                origin: user?.origin || '',
                 budgetLimit,
                 duration,
                 region
@@ -213,7 +216,11 @@ export const DiscoverPage = () => {
             )}
 
             <AnimatePresence>
-                {result && !isGenerating && (
+                {result && !isGenerating && (() => {
+                    const validAlternatives = result.alternatives.filter(
+                        a => a.city && a.avgCostUsd > 0
+                    );
+                    return (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
 
                         {/* Explanation Summary */}
@@ -289,13 +296,13 @@ export const DiscoverPage = () => {
 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                     {/* Alternatives */}
-                                    {result.alternatives.length > 0 && (
+                                    {validAlternatives.length > 0 && (
                                         <div>
                                             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                                 <span className="text-2xl">🥈</span> Strong Alternatives
                                             </h2>
                                             <div className="space-y-4">
-                                                {result.alternatives.map((alt, idx) => (
+                                                {validAlternatives.map((alt, idx) => (
                                                     <Card key={idx} hoverEffect className="p-5 border border-gray-100 dark:border-gray-700/50  relative overflow-hidden group">
                                                         <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50 group-hover:bg-blue-500 transition-colors"></div>
                                                         <div className="flex justify-between items-center pl-2">
@@ -351,7 +358,8 @@ export const DiscoverPage = () => {
                             </div>
                         )}
                     </motion.div>
-                )}
+                    );
+                })()}
             </AnimatePresence>
         </main>
     );

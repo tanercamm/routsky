@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Routsky.Api.Data;
@@ -11,9 +12,11 @@ using Routsky.Api.Data;
 namespace Routsky.Api.Migrations
 {
     [DbContext(typeof(RoutskyDbContext))]
-    partial class RoutskyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260308102613_AddProfilePictureUrlToUserProfile")]
+    partial class AddProfilePictureUrlToUserProfile
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

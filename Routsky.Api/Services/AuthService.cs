@@ -55,7 +55,9 @@ public class AuthService : IAuthService
             Username = string.IsNullOrWhiteSpace(request.FirstName) ? request.Email.Split('@')[0] : request.FirstName,
             Email = request.Email,
             Passports = request.Passports != null && request.Passports.Any() ? request.Passports : new List<string> { "TR" },
-            Origin = string.IsNullOrWhiteSpace(request.Origin) ? "IST" : request.Origin
+            Origin = string.IsNullOrWhiteSpace(request.Origin)
+                ? PassportHubResolver.Resolve(request.Passports?.FirstOrDefault() ?? "TR")
+                : request.Origin
         };
 
         _context.UserProfiles.Add(profile);
@@ -102,7 +104,9 @@ public class AuthService : IAuthService
                 Username = string.IsNullOrWhiteSpace(user.FirstName) ? user.Email.Split('@')[0] : user.FirstName,
                 Email = user.Email,
                 Passports = request.Passports,
-                Origin = string.IsNullOrWhiteSpace(request.Origin) ? "IST" : request.Origin,
+                Origin = string.IsNullOrWhiteSpace(request.Origin)
+                    ? PassportHubResolver.Resolve(request.Passports?.FirstOrDefault() ?? "TR")
+                    : request.Origin,
                 PreferredCurrency = string.IsNullOrWhiteSpace(request.PreferredCurrency) ? "USD" : request.PreferredCurrency,
                 UnitPreference = string.IsNullOrWhiteSpace(request.UnitPreference) ? "Metric" : request.UnitPreference,
                 TravelStyle = string.IsNullOrWhiteSpace(request.TravelStyle) ? "Comfort" : request.TravelStyle,

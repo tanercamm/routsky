@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback, useMemo, memo, startTransition } from 'react';
+import { useRef, useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import Globe, { type GlobeMethods } from 'react-globe.gl';
@@ -37,45 +37,48 @@ interface GlobeSceneProps {
 
 const GlobeScene = memo(function GlobeScene({ width, height, labelsData, onPointClick, globeRef }: GlobeSceneProps) {
   return (
-    <Globe
-      ref={globeRef}
-      width={width}
-      height={height}
-      globeImageUrl={GLOBE_IMAGE}
-      bumpImageUrl={BUMP_IMAGE}
-      backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-      atmosphereColor="#4a7a9b"
-      atmosphereAltitude={0.16}
+    <div className="absolute inset-0 z-10" style={{ pointerEvents: 'auto' }}>
+      <Globe
+        ref={globeRef}
+        width={width}
+        height={height}
+        globeImageUrl={GLOBE_IMAGE}
+        bumpImageUrl={BUMP_IMAGE}
+        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+        atmosphereColor="#4a7a9b"
+        atmosphereAltitude={0.16}
 
-      pointsData={ALL_CITIES}
-      pointLat="lat"
-      pointLng="lng"
-      pointColor={getPointColor}
-      pointAltitude={0.01}
-      pointRadius={getPointRadius}
-      pointsMerge={true}
-      onPointClick={onPointClick}
+        pointsData={ALL_CITIES}
+        pointLat="lat"
+        pointLng="lng"
+        pointColor={getPointColor}
+        pointAltitude={0.01}
+        pointRadius={getPointRadius}
+        pointsMerge={false}
+        onPointClick={onPointClick}
 
-      labelsData={labelsData}
-      labelLat="lat"
-      labelLng="lng"
-      labelText="name"
-      labelSize={0.4}
-      labelDotRadius={0.15}
-      labelColor={getLabelColor}
-      labelResolution={2}
-      labelAltitude={0.005}
+        labelsData={labelsData}
+        labelLat="lat"
+        labelLng="lng"
+        labelText="name"
+        labelSize={0.4}
+        labelDotRadius={0.15}
+        labelColor={getLabelColor}
+        labelResolution={2}
+        labelAltitude={0.005}
+        onLabelClick={onPointClick}
 
-      ringsData={STATIC_RINGS}
-      ringLat="lat"
-      ringLng="lng"
-      ringColor={getRingColor}
-      ringMaxRadius="maxR"
-      ringPropagationSpeed="propagationSpeed"
-      ringRepeatPeriod="repeatPeriod"
+        ringsData={STATIC_RINGS}
+        ringLat="lat"
+        ringLng="lng"
+        ringColor={getRingColor}
+        ringMaxRadius="maxR"
+        ringPropagationSpeed="propagationSpeed"
+        ringRepeatPeriod="repeatPeriod"
 
-      animateIn={true}
-    />
+        animateIn={true}
+      />
+    </div>
   );
 });
 
@@ -146,17 +149,12 @@ export function HomePage() {
   }, [dimensions]);
 
   const handlePointClick = useCallback((point: object | null) => {
+    console.log('Globe: Point clicked', point);
     if (!point) return;
     const city = point as CityPoint;
     const controls = globeRef.current?.controls();
     if (controls) controls.autoRotate = false;
-
-    // Fix: Defer state update to avoid blocking Three.js raycasting cycle
-    setTimeout(() => {
-      startTransition(() => {
-        setSelected(city);
-      });
-    }, 0);
+    setSelected(city);
   }, []);
 
   const handleDismiss = useCallback(() => {
@@ -177,7 +175,7 @@ export function HomePage() {
         <div className="w-[700px] h-[700px] rounded-full bg-slate-500/[0.015]" />
       </div>
 
-      <div className="absolute inset-0 pointer-events-none z-10 opacity-[0.02]"
+      <div className="absolute inset-0 pointer-events-none z-[1] opacity-[0.02]"
         style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.04) 2px, rgba(255,255,255,0.04) 4px)' }}
       />
 
@@ -267,11 +265,11 @@ export function HomePage() {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 1, type: 'spring', stiffness: 100 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
       >
         <button
           onClick={() => navigate('/find-route')}
-          className="group relative cursor-pointer"
+          className="group relative cursor-pointer pointer-events-auto"
         >
           <div className="relative flex items-center gap-3 bg-[#0c1424] border border-slate-700/60 group-hover:border-slate-600/80 rounded-xl px-8 py-4 transition-colors duration-200">
             <Zap size={20} className="text-slate-500 group-hover:text-slate-400" />

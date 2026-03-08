@@ -282,12 +282,12 @@ const GroupDashboard = ({ allGroups, selectedGroupId, onBack, deleteGroup }: any
                         )}
 
                         {/* Alternatives (compact) */}
-                        {decisionResult && decisionResult.alternatives.length > 0 && (
+                        {decisionResult && decisionResult.alternatives.filter(a => a.city && a.avgCostUsd > 0).length > 0 && (
                             <div className="bg-white dark:bg-[#1E293B] border border-gray-200 dark:border-gray-800 p-3 rounded-xl">
                                 <h3 className="font-bold text-gray-900 dark:text-white text-xs mb-1">Alternatives</h3>
                                 <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">Runner-ups evaluated by MCP pipeline</p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {decisionResult.alternatives.map((alt, idx) => {
+                                    {decisionResult.alternatives.filter(a => a.city && a.avgCostUsd > 0).map((alt, idx) => {
                                         const scoreDiff = decisionResult.winner.compositeScore - alt.compositeScore;
                                         return (
                                             <div key={alt.destinationCode} className="p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40">

@@ -16,7 +16,7 @@ public class FlightController : ControllerBase
 
     /// <summary>
     /// Returns flight data for a given origin → destination, using the RouteFeasibilityService.
-    /// If no origin is provided, returns an estimate from IST as a sensible default for browsing.
+    /// If no origin is provided, resolves from passport via PassportHubResolver.
     /// </summary>
     [HttpGet("live")]
     public async Task<IActionResult> GetLiveFlight(
@@ -27,7 +27,9 @@ public class FlightController : ControllerBase
         if (string.IsNullOrWhiteSpace(destination))
             return BadRequest(new { message = "Destination is required" });
 
-        var effectiveOrigin = !string.IsNullOrWhiteSpace(origin) ? origin : "IST";
+        var effectiveOrigin = !string.IsNullOrWhiteSpace(origin)
+            ? origin
+            : PassportHubResolver.Resolve(passport ?? "TR");
         var passports = !string.IsNullOrWhiteSpace(passport)
             ? new List<string> { passport }
             : new List<string> { "TR" };

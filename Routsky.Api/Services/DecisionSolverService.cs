@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
@@ -230,23 +231,25 @@ public class DecisionSolverService
 
         // ── Phase 3: Decision & Synthesis (Agent Prompt) ──
         var prompt = $@"
-You are an expert group travel Agent Orchestrator. Decide the best travel destination for {members.Count} members.
+ROLE: Group travel decision engine for {members.Count} members. TERMINAL-STYLE OUTPUT ONLY.
+STRICT OUTPUT RULES: No greetings, no salutations, no filler phrases, no conversational tone. Zero ""Hello"", ""I've reviewed"", ""I'm excited"", ""Great news"". Write like a flight operations terminal — direct, factual, concise.
 
-Raw Facts for Candidate Destinations:
+Raw Facts:
 {JsonSerializer.Serialize(factsList)}
 
-Strict Rules:
-1. Provide a logical decision. YOU are the sole authority on the logical winner. There are no hardcoded logic loops.
-2. Eliminate destinations that strictly require a Visa if the user has no Visa (VisaRequired = true).
-3. Select a destination where the majority stay within their personal `MemberBudgetUsd`. The Cost facts represent typical return flight cost.
-4. Minimize the difference in `FlightTimeMinutes` between members to ensure fairness.
-5. Provide a human-readable explanation of your reasoning process. Mention who pays what and who flies how long.
+Decision Rules:
+1. YOU are the sole authority on the logical winner. No hardcoded logic.
+2. Eliminate destinations requiring Visa when VisaRequired = true.
+3. Majority must stay within their personal MemberBudgetUsd. Cost = typical return flight.
+4. Minimize FlightTimeMinutes variance between members for fairness.
 
-Respond STRICTLY with valid JSON matching this schema, with NO markdown formatting. Do not wrap in ```json.
+Explanation MUST be 2-4 sentences, max 150 words. State the winner, the key metric that decided it, and one reason runners-up lost. No bullet points, no numbering.
+
+Respond STRICTLY with valid JSON, NO markdown. Do not wrap in ```json.
 {{
-  ""Winner"": {{ ""DestinationCode"": ""XYZ"", ""City"": """", ""Country"": """", ""CompositeScore"": 95, ""AvgCostUsd"": 1000, ""AvgFlightTime"": ""2h 30m"" }},
-  ""Alternatives"": [ {{ ""DestinationCode"": ""ABC"", ""City"": """", ""Country"": """", ""CompositeScore"": 85, ""AvgCostUsd"": 1200, ""AvgFlightTime"": ""3h"" }} ],
-  ""Explanation"": ""Detailed reasoning for why XYZ won and others didn't."",
+  ""Winner"": {{ ""DestinationCode"": ""XYZ"", ""City"": ""CityName"", ""Country"": ""CountryName"", ""CompositeScore"": 95, ""AvgCostUsd"": 1000, ""AvgFlightTime"": ""2h 30m"" }},
+  ""Alternatives"": [ {{ ""DestinationCode"": ""ABC"", ""City"": ""CityName"", ""Country"": ""CountryName"", ""CompositeScore"": 85, ""AvgCostUsd"": 1200, ""AvgFlightTime"": ""3h"" }} ],
+  ""Explanation"": ""Direct factual reasoning. No filler."",
   ""EliminatedReasons"": {{ ""CDE"": ""Visa required for Member1"", ""FGH"": ""Over budget for Member2"" }}
 }}
 ";
@@ -269,7 +272,7 @@ Respond STRICTLY with valid JSON matching this schema, with NO markdown formatti
             : new List<string> { request.Passport };
         var origin = request.Origin;
         if (string.IsNullOrWhiteSpace(origin))
-            origin = passports[0].ToUpperInvariant() switch { "AU" => "SYD", "DE" => "BER", "TR" => "IST", _ => "IST" };
+            origin = PassportHubResolver.Resolve(passports[0]);
 
         int maxBudget = request.BudgetLimit switch
         {
@@ -360,23 +363,27 @@ Respond STRICTLY with valid JSON matching this schema, with NO markdown formatti
         }
 
         var prompt = $@"
-You are a highly intelligent travel agent orchestrator. 
-The user's constraint: Budget Limit: {request.BudgetLimit} (Approx Max ${maxBudget}), Passports: {string.Join(",", passports)}, Duration: {request.Duration}.
+ROLE: Solo travel decision engine. TERMINAL-STYLE OUTPUT ONLY.
+STRICT OUTPUT RULES: No greetings, no salutations, no filler phrases, no conversational tone. Zero ""Hello"", ""I've reviewed"", ""I'm excited"", ""Great news"". Write like a flight operations terminal — direct, factual, concise.
 
-Raw Facts for Candidates:
+Constraints: Budget ≤ ${maxBudget}, Passports: {string.Join(",", passports)}, Duration: {request.Duration}.
+
+Raw Facts:
 {JsonSerializer.Serialize(factsList)}
 
-Strict Rules:
-1. Eliminate destinations that strictly require a Visa if the user has no Visa (VisaRequired = true).
-2. Prioritize staying within the total trip budget (`EstimatedTotalTripCostUsd`).
-3. Pick the most logical winner balancing cost, flight time, safety (`SafetyIndex`), and prestige.
-4. Provide a human-readable explanation of your reasoning process without robotic numbering. Make sure to talk to the user.
+Decision Rules:
+1. Eliminate destinations requiring Visa when VisaRequired = true.
+2. Prioritize staying within total trip budget (EstimatedTotalTripCostUsd).
+3. Pick the most logical winner balancing cost, flight time, SafetyIndex, and prestige.
 
-Respond STRICTLY in JSON matching this exact C# schema, NO markdown wrapping.
+Explanation MUST be 2-4 sentences, max 150 words. State the winner, the key metric that decided it, and one reason runners-up lost. No bullet points, no numbering.
+
+ALL fields below are REQUIRED for Winner AND every Alternative. Do not omit City, Country, AvgCostUsd, or AvgFlightTime.
+Respond STRICTLY in JSON, NO markdown wrapping. Do not wrap in ```json.
 {{
-  ""Winner"": {{ ""DestinationCode"": ""XYZ"", ""City"": ""City"", ""Country"": ""Country"", ""CompositeScore"": 95, ""AvgCostUsd"": 1000, ""AvgFlightTime"": ""2h 30m"" }},
-  ""Alternatives"": [ {{ ""DestinationCode"": ""ABC"", ""CompositeScore"": 85 }} ],
-  ""Explanation"": ""Your detailed text explanation."",
+  ""Winner"": {{ ""DestinationCode"": ""XYZ"", ""City"": ""CityName"", ""Country"": ""CountryName"", ""CompositeScore"": 95, ""AvgCostUsd"": 1000, ""AvgFlightTime"": ""2h 30m"" }},
+  ""Alternatives"": [ {{ ""DestinationCode"": ""ABC"", ""City"": ""CityName"", ""Country"": ""CountryName"", ""CompositeScore"": 85, ""AvgCostUsd"": 1200, ""AvgFlightTime"": ""3h"" }} ],
+  ""Explanation"": ""Direct factual reasoning. No filler."",
   ""EliminatedReasons"": {{ ""DEF"": ""Over budget"", ""GHI"": ""Visa required"" }}
 }}
 ";
@@ -390,11 +397,16 @@ Respond STRICTLY in JSON matching this exact C# schema, NO markdown wrapping.
             _logger.LogInformation("[GeminiClient] Request sent to Google AI — decision synthesis for {CandidateCount} candidates", storedTickets.Count);
             var chatService = _kernel.GetRequiredService<IChatCompletionService>();
             var history = new ChatHistory();
+            history.AddSystemMessage(
+                "You are Routsky Decision Engine. Output valid JSON only. " +
+                "Never use greetings, salutations, or conversational filler in the Explanation field. " +
+                "No \"Hello\", \"Hi there\", \"I've reviewed\", \"Great news\", \"I'm excited\". " +
+                "Explanation: max 3 sentences of direct analytical logic.");
             history.AddUserMessage(prompt);
 
             var executionSettings = new PromptExecutionSettings
             {
-                ExtensionData = new Dictionary<string, object> { { "temperature", 0.2 }, { "topP", 0.95 } }
+                ExtensionData = new Dictionary<string, object> { { "temperature", 0.1 }, { "topP", 0.9 } }
             };
 
             var response = await chatService.GetChatMessageContentAsync(history, executionSettings);
@@ -417,14 +429,65 @@ Respond STRICTLY in JSON matching this exact C# schema, NO markdown wrapping.
                 result.DecidedAt = DateTime.UtcNow;
                 result.Source = "gemini";
 
-                if (!string.IsNullOrEmpty(result.Winner.DestinationCode) && storedTickets.TryGetValue(result.Winner.DestinationCode, out var winnerTickets))
-                    result.Winner.MemberTickets = winnerTickets;
+                if (!string.IsNullOrEmpty(result.Winner.DestinationCode))
+                {
+                    if (storedTickets.TryGetValue(result.Winner.DestinationCode, out var winnerTickets))
+                        result.Winner.MemberTickets = winnerTickets;
+
+                    var knownWinner = CandidateDestinations.FirstOrDefault(c => c.Code == result.Winner.DestinationCode);
+                    if (knownWinner != default)
+                    {
+                        if (string.IsNullOrEmpty(result.Winner.City)) result.Winner.City = knownWinner.City;
+                        if (string.IsNullOrEmpty(result.Winner.Country)) result.Winner.Country = knownWinner.Country;
+                    }
+
+                    if (result.Winner.MemberTickets.Count > 0)
+                    {
+                        if (result.Winner.AvgCostUsd <= 0)
+                            result.Winner.AvgCostUsd = (int)result.Winner.MemberTickets.Average(t => t.CostUsd);
+                        if (result.Winner.AvgConvertedCost <= 0)
+                            result.Winner.AvgConvertedCost = (int)result.Winner.MemberTickets.Average(t => t.ConvertedCost);
+                        if (string.IsNullOrEmpty(result.Winner.AvgFlightTime))
+                        {
+                            var avgMin = (int)result.Winner.MemberTickets.Average(t => t.FlightTimeMinutes);
+                            result.Winner.AvgFlightTime = $"{avgMin / 60}h {avgMin % 60}m";
+                        }
+                    }
+                }
 
                 foreach (var alt in result.Alternatives)
                 {
-                    if (!string.IsNullOrEmpty(alt.DestinationCode) && storedTickets.TryGetValue(alt.DestinationCode, out var altTickets))
+                    if (string.IsNullOrEmpty(alt.DestinationCode)) continue;
+
+                    if (storedTickets.TryGetValue(alt.DestinationCode, out var altTickets))
                         alt.MemberTickets = altTickets;
+
+                    var known = CandidateDestinations.FirstOrDefault(c => c.Code == alt.DestinationCode);
+                    if (known != default)
+                    {
+                        if (string.IsNullOrEmpty(alt.City)) alt.City = known.City;
+                        if (string.IsNullOrEmpty(alt.Country)) alt.Country = known.Country;
+                    }
+
+                    if (alt.MemberTickets.Count > 0)
+                    {
+                        if (alt.AvgCostUsd <= 0)
+                            alt.AvgCostUsd = (int)alt.MemberTickets.Average(t => t.CostUsd);
+                        if (alt.AvgConvertedCost <= 0)
+                            alt.AvgConvertedCost = (int)alt.MemberTickets.Average(t => t.ConvertedCost);
+                        if (string.IsNullOrEmpty(alt.AvgFlightTime))
+                        {
+                            var avgMin = (int)alt.MemberTickets.Average(t => t.FlightTimeMinutes);
+                            alt.AvgFlightTime = $"{avgMin / 60}h {avgMin % 60}m";
+                        }
+                    }
                 }
+
+                result.Alternatives.RemoveAll(a =>
+                    string.IsNullOrEmpty(a.City) || a.AvgCostUsd <= 0);
+
+                if (!string.IsNullOrEmpty(result.Explanation))
+                    result.Explanation = StripConversationalFiller(result.Explanation);
 
                 _logger.LogInformation("[GeminiClient] Response received from Google AI — winner: {Winner}", result.Winner.City);
                 return result;
@@ -463,7 +526,7 @@ Respond STRICTLY in JSON matching this exact C# schema, NO markdown wrapping.
                 continue;
             }
 
-            var resolvedOrigin = !string.IsNullOrWhiteSpace(origin) ? origin : passports!.First();
+            var resolvedOrigin = !string.IsNullOrWhiteSpace(origin) ? origin : PassportHubResolver.Resolve(passports!.First());
             var budget = m.User.Profile?.Budget ?? 0;
 
             members.Add(new MemberInfo
@@ -478,6 +541,16 @@ Respond STRICTLY in JSON matching this exact C# schema, NO markdown wrapping.
         }
 
         return (members, warnings);
+    }
+
+    private static readonly Regex FillerPattern = new(
+        @"^(Hello[^.!]*[.!]\s*|Hi[^.!]*[.!]\s*|Hey[^.!]*[.!]\s*|Greetings[^.!]*[.!]\s*|I've reviewed[^.!]*[.!]\s*|I have reviewed[^.!]*[.!]\s*|Great news[^.!]*[.!]\s*|I'm excited[^.!]*[.!]\s*|Good news[^.!]*[.!]\s*|Welcome[^.!]*[.!]\s*|Sure[^.!]*[.!]\s*|Absolutely[^.!]*[.!]\s*|Of course[^.!]*[.!]\s*)+",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static string StripConversationalFiller(string text)
+    {
+        var cleaned = FillerPattern.Replace(text, "").TrimStart();
+        return string.IsNullOrWhiteSpace(cleaned) ? text.Trim() : cleaned;
     }
 
     private string GetRegionForCountryCode(string countryCode)

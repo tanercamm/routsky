@@ -87,14 +87,12 @@ html {
   scrollbar-color: #cbd5e1 transparent;
 }
 /* ── Zero-Glow Policy (Flat UI Aesthetic) ── */
-* {
+*:not(canvas) {
   box-shadow: none !important;
-  filter: none !important;
   text-shadow: none !important;
 }
 
 /* Ensure no glows on hovering cards or buttons */
 .card, button, .rounded-xl, .bg-white, .dark\:bg-gray-800 {
   box-shadow: none !important;
-  filter: drop-shadow(0 0 0 transparent) !important;
 }

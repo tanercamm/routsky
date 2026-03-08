@@ -55,6 +55,9 @@ public class UserProfile
     public bool NotificationsEnabled { get; set; } = true;
     public bool PriceAlertsEnabled { get; set; } = true;
 
+    [MaxLength(255)]
+    public string? ProfilePictureUrl { get; set; }
+
     // Navigation
     public ICollection<SavedRoute> SavedRoutes { get; set; } = new List<SavedRoute>();
 }
