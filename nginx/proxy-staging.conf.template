@@ -23,6 +23,12 @@ server {
         }
         return 301 https://$host$request_uri;
     }
+
+    # Add no-cache headers for Cloudflare path (port 80)
+    add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+    add_header CDN-Cache-Control "no-store" always;
+    add_header Pragma "no-cache" always;
+    add_header Expires "0" always;
 }
 
 # ── HTTPS: Frontend (routsky.xyz) ──
@@ -46,6 +52,18 @@ server {
     add_header X-Content-Type-Options nosniff always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
 
+    # Static assets (JS/CSS with hash in filename) — cache aggressively
+    location ~* \.(?:js|css|woff2?|ttf|eot|svg|png|jpe?g|gif|ico|webp|avif)$ {
+        proxy_pass         http://web:80;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+    }
+
+    # Everything else (index.html / SPA routes) — NEVER cache
     location / {
         proxy_pass         http://web:80;
         proxy_http_version 1.1;
@@ -53,6 +71,14 @@ server {
         proxy_set_header   X-Real-IP         $remote_addr;
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto $scheme;
+
+        # Kill caching at every layer: browser, Cloudflare, any CDN
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header CDN-Cache-Control "no-store" always;
+        add_header Cloudflare-CDN-Cache-Control "no-store" always;
+        add_header Pragma "no-cache" always;
+        add_header Expires "0" always;
+        add_header X-Build-Version "staging-v2-20260311T1750" always;
     }
 }
 

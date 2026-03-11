@@ -93,7 +93,7 @@ export const LoginPage = () => {
                         <div className="w-10 h-10 bg-teal-50 dark:bg-teal-500/10 rounded-lg flex items-center justify-center mb-5">
                             <LogIn size={20} className="text-teal-600 dark:text-teal-400" />
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Welcome back</h1>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Routsky STAGING - VERIFIED V2</h1>
                         <p className="text-sm text-gray-500 dark:text-gray-400">Enter your details to sign in.</p>
                     </div>
 

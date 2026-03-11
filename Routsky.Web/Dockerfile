@@ -8,7 +8,7 @@ COPY package.json package-lock.json* ./
 RUN npm install --legacy-peer-deps
 
 COPY . .
-RUN npm run build
+RUN rm -rf dist && npm run build
 
 FROM nginx:alpine AS runtime
 COPY --from=build /app/dist /usr/share/nginx/html
