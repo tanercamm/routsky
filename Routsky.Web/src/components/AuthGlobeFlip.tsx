@@ -215,7 +215,7 @@ function FormSection({ isRegister, accent, formProps, toggleFlip }: any) {
                 {/* Title */}
                 <div className="mb-10">
                     <h1 className="text-3xl lg:text-4xl font-bold text-white tracking-tight mb-2">
-                        {isRegister ? 'Create Account' : 'Welcome Back'}
+                        {isRegister ? 'Create Account' : 'Routsky Staging v2'}
                     </h1>
                     <p className="text-sm text-white/30">
                         {isRegister ? 'Start planning your next adventure.' : 'Sign in to continue your journey.'}

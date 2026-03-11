@@ -3,8 +3,6 @@ import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthGlobeFlip } from './components/AuthGlobeFlip';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { DiscoverPage } from './pages/DiscoverPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
@@ -20,8 +18,8 @@ function App() {
       <ThemeProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={import.meta.env.VITE_APP_ENV === 'staging' ? <AuthGlobeFlip /> : <LoginPage />} />
-            <Route path="/register" element={import.meta.env.VITE_APP_ENV === 'staging' ? <AuthGlobeFlip /> : <RegisterPage />} />
+            <Route path="/login" element={<AuthGlobeFlip />} />
+            <Route path="/register" element={<AuthGlobeFlip />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
                 <Route path="/" element={<HomePage />} />
