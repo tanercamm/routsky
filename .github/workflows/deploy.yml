@@ -18,9 +18,16 @@ jobs:
             cd /home/tanercamm0/routsky
             git reset --hard HEAD
             git pull origin main
+            
+            # 1. Eski sistemi tamamen durdur ve temizle
             sudo docker compose -f docker-compose.staging.yml down
+            
+            # 2. ESKİ İMAJLARI VE CACHE'İ SİL (En kritik adım bu!)
             sudo docker system prune -af
-            sudo docker compose -f docker-compose.staging.yml up -d --build
-            # Nginx'i mühürleyen sihirli komut:
+            
+            # 3. SIFIRDAN, HİÇBİR CACHE KULLANMADAN BUILD ET
+            sudo docker compose -f docker-compose.staging.yml up -d --build --force-recreate --no-cache
+            
+            # 4. Nginx mühürleme (Welcome to Nginx hatasını engellemek için)
             sudo docker cp nginx/conf.d/default.conf routsky_staging_proxy:/etc/nginx/conf.d/default.conf
             sudo docker exec routsky_staging_proxy nginx -s reload
