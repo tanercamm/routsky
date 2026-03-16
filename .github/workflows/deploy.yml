@@ -16,21 +16,18 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/tanercamm0/routsky
-            git config --global --add safe.directory /home/tanercamm0/routsky
+            # Git'i zorla güncelle
+            sudo git config --global --add safe.directory /home/tanercamm0/routsky
+            sudo git reset --hard HEAD
+            sudo git clean -fd
+            sudo git pull origin main
             
-            # Git çakışmalarını temizle
-            git reset --hard HEAD
-            git clean -fd
-            git pull origin main
+            # Docker'ı tertemiz baştan kur
+            sudo docker compose -f docker-compose.staging.yml down --remove-orphans
+            sudo docker compose -f docker-compose.staging.yml build --no-cache
+            sudo docker compose -f docker-compose.staging.yml up -d --force-recreate
             
-            # Docker operasyonu
-            docker compose -f docker-compose.staging.yml down --remove-orphans
-            docker compose -f docker-compose.staging.yml build --no-cache
-            
-            # Sistemi ayağa kaldır
-            docker compose -f docker-compose.staging.yml up -d --force-recreate
-            
-            # Nginx mühürleme
-            sleep 15
-            docker cp nginx/conf.d/default.conf routsky_staging_proxy:/etc/nginx/conf.d/default.conf
-            docker exec routsky_staging_proxy nginx -s reload
+            # Nginx'i bekle ve mühürle
+            sleep 20
+            sudo docker cp nginx/conf.d/default.conf routsky_staging_proxy:/etc/nginx/conf.d/default.conf
+            sudo docker exec routsky_staging_proxy nginx -s reload
