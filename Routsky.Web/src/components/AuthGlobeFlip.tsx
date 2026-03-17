@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { login as apiLogin, register as apiRegister } from '../api/routskyApi';
+import { login as apiLogin, register as apiRegister, BASE_URL } from '../api/routskyApi';
 import { Input } from './ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -211,8 +211,9 @@ export const AuthGlobeFlip = () => {
     };
 
     const handleSocialLogin = (provider: string) => {
-        const apiBase = import.meta.env.VITE_API_BASE_URL || '/api';
-        window.location.href = `${apiBase}/auth/social/${provider}`;
+        const apiBase = BASE_URL;
+        const baseUrl = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
+        window.location.href = `${baseUrl}/auth/social/${provider}`;
     };
 
     const toggleFlip = () => {

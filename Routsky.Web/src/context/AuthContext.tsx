@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { routskyApi } from '../api/routskyApi';
+import { routskyApi, getApiUrl } from '../api/routskyApi';
 
 import type { User } from '../types';
 
@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             routskyApi.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
 
             // Hydrate the latest state directly from backend
-            routskyApi.get('/auth/me').then(res => {
+            routskyApi.get(getApiUrl('/auth/me')).then(res => {
                 if (res.data) {
                     const refreshedUser = res.data;
 
@@ -138,7 +138,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 priceAlertsEnabled: data.priceAlertsEnabled !== undefined ? data.priceAlertsEnabled : (user?.priceAlertsEnabled ?? true)
             };
 
-            await routskyApi.put('/auth/profile', updatePayload);
+            await routskyApi.put(getApiUrl('/auth/profile'), updatePayload);
             setUser(prev => {
                 if (!prev) return prev;
                 const updated = { ...prev, ...updatePayload };
@@ -162,7 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const updatePreferencesSettings = async (data: { preferredCurrency?: string, unitPreference?: string }) => {
         try {
-            await routskyApi.patch('/user/preferences', data);
+            await routskyApi.patch(getApiUrl('/user/preferences'), data);
             setUser(prev => {
                 if (!prev) return prev;
                 const updated = { ...prev, ...data };
@@ -177,7 +177,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const updateNotificationSettings = async (data: { notificationsEnabled?: boolean, priceAlertsEnabled?: boolean }) => {
         try {
-            await routskyApi.patch('/user/notifications', data);
+            await routskyApi.patch(getApiUrl('/user/notifications'), data);
             setUser(prev => {
                 if (!prev) return prev;
                 const updated = { ...prev, ...data };
