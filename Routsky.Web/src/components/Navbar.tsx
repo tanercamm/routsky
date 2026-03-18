@@ -95,8 +95,8 @@ export const Navbar = () => {
                                 }`}
                             title="Profile"
                         >
-                            {user?.avatarUrl ? (
-                                <img src={user.avatarUrl} alt="Navbar Avatar" className="w-full h-full object-cover" />
+                            {(user?.avatarBase64 || user?.avatarUrl) ? (
+                                <img src={user?.avatarBase64 || user.avatarUrl} alt="Navbar Avatar" className="w-full h-full object-cover" />
                             ) : (
                                 <User size={16} className={
                                     location.pathname === '/profile' ? 'text-white' : 'text-gray-400'

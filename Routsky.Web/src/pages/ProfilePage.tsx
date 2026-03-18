@@ -96,7 +96,10 @@ export const ProfilePage = () => {
         try {
             setIsUploading(true);
             const response = await routskyApi.post('/auth/profile/avatar', formData);
-            if (response.data?.avatarUrl) {
+            // Backend now returns avatarBase64 when storing embedded images
+            if (response.data?.avatarBase64) {
+                setUserAvatar(response.data.avatarBase64);
+            } else if (response.data?.avatarUrl) {
                 setUserAvatar(response.data.avatarUrl);
             }
         } catch (err) {
@@ -136,8 +139,8 @@ export const ProfilePage = () => {
                                         className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden transition-all hover:ring-2 hover:ring-[#007AFF] focus:outline-none"
                                         aria-label="Manage Avatar"
                                     >
-                                        {user?.avatarUrl ? (
-                                            <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                                        {(user?.avatarBase64 || user?.avatarUrl) ? (
+                                            <img src={previewUrl || user?.avatarBase64 || user?.avatarUrl || undefined} alt="Profile" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full bg-[#007AFF] flex items-center justify-center">
                                                 <User size={24} className="text-white" />
@@ -440,8 +443,8 @@ export const ProfilePage = () => {
                                             </div>
                                         )}
 
-                                        {(previewUrl || user?.avatarUrl) ? (
-                                            <img src={previewUrl || user?.avatarUrl || undefined} alt="Profile" className="w-full h-full object-cover" />
+                                        {(previewUrl || user?.avatarBase64 || user?.avatarUrl) ? (
+                                            <img src={previewUrl || user?.avatarBase64 || user?.avatarUrl || undefined} alt="Profile" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full bg-gradient-to-br from-blue-400 to-[#007AFF] flex items-center justify-center">
                                                 <User size={48} className="text-white" />
@@ -459,7 +462,7 @@ export const ProfilePage = () => {
                                                     Change Photo
                                                 </label>
 
-                                                {user?.avatarUrl && (
+                                                {(user?.avatarBase64 || user?.avatarUrl) && (
                                                     <button
                                                         onClick={handleRemoveAvatar}
                                                         disabled={isUploading}

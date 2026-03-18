@@ -335,7 +335,7 @@ export const TravelGroupsPage = () => {
                                         <div className="flex items-center justify-between mb-6 mt-2">
                                             <div className="flex items-center">
                                                 {group.members.slice(0, 5).map((member: any, i: number) => {
-                                                    const avatarSrc = member.avatar || member.avatarUrl;
+                                                    const avatarSrc = member.avatarBase64 || member.avatar || member.avatarUrl;
                                                     const solvedUrl = avatarSrc
                                                         || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'User')}&background=random&color=fff`;
 

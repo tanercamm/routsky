@@ -33,8 +33,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             try {
                 const parsed = JSON.parse(storedUser);
 
-                // Map avatar from multiple possible keys (embedded Base64 takes precedence)
-                parsed.avatarUrl = parsed.avatarUrl || parsed.avatarBase64 || parsed.AvatarBase64 || parsed.AvatarUrl;
+                // Map avatar fields (prefer embedded Base64, keep URL separate)
+                const storedBase64 = parsed.avatarBase64 || parsed.AvatarBase64 || (typeof parsed.avatarUrl === 'string' && parsed.avatarUrl.startsWith('data:') ? parsed.avatarUrl : undefined);
+                const storedUrl = (parsed.avatarUrl && !(typeof parsed.avatarUrl === 'string' && parsed.avatarUrl.startsWith('data:'))) ? parsed.avatarUrl : (parsed.AvatarUrl && !(typeof parsed.AvatarUrl === 'string' && parsed.AvatarUrl.startsWith('data:')) ? parsed.AvatarUrl : undefined);
+                parsed.avatarBase64 = storedBase64 || undefined;
+                parsed.avatarUrl = storedUrl || undefined;
 
                 // Safely ensure passports is an array
                 if (!parsed.passports) {
@@ -66,8 +69,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if (res.data) {
                     const refreshedUser = res.data;
 
-                    // EXACT MAPPING: prefer embedded base64, then URL
-                    refreshedUser.avatarUrl = refreshedUser.avatarUrl || refreshedUser.avatarBase64 || refreshedUser.AvatarBase64 || refreshedUser.AvatarUrl;
+                    // EXACT MAPPING: prefer embedded base64, then URL (keep fields separate)
+                    const fetchedBase64 = refreshedUser.avatarBase64 || refreshedUser.AvatarBase64 || (typeof refreshedUser.avatarUrl === 'string' && refreshedUser.avatarUrl.startsWith('data:') ? refreshedUser.avatarUrl : undefined);
+                    const fetchedUrl = (refreshedUser.avatarUrl && !(typeof refreshedUser.avatarUrl === 'string' && refreshedUser.avatarUrl.startsWith('data:'))) ? refreshedUser.avatarUrl : (refreshedUser.AvatarUrl && !(typeof refreshedUser.AvatarUrl === 'string' && refreshedUser.AvatarUrl.startsWith('data:')) ? refreshedUser.AvatarUrl : undefined);
+                    refreshedUser.avatarBase64 = fetchedBase64 || undefined;
+                    refreshedUser.avatarUrl = fetchedUrl || undefined;
 
                     // Safely ensure passports is an array from API too
                     if (!refreshedUser.passports) {
@@ -93,8 +99,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const login = (newToken: string, newUser: User) => {
-        // Explicitly map the URL / embedded base64
-        newUser.avatarUrl = newUser.avatarUrl || (newUser as any).avatarBase64 || (newUser as any).AvatarBase64 || (newUser as any).AvatarUrl;
+        // Explicitly map avatar fields on login
+        const incomingBase64 = (newUser as any).avatarBase64 || (newUser as any).AvatarBase64 || (typeof (newUser as any).avatarUrl === 'string' && (newUser as any).avatarUrl.startsWith?.('data:') ? (newUser as any).avatarUrl : undefined);
+        const incomingUrl = (newUser as any).avatarUrl && !(typeof (newUser as any).avatarUrl === 'string' && (newUser as any).avatarUrl.startsWith('data:')) ? (newUser as any).avatarUrl : ((newUser as any).AvatarUrl && !(typeof (newUser as any).AvatarUrl === 'string' && (newUser as any).AvatarUrl.startsWith('data:')) ? (newUser as any).AvatarUrl : undefined);
+        newUser.avatarBase64 = incomingBase64 || undefined;
+        newUser.avatarUrl = incomingUrl || undefined;
 
         // Safely ensure passports is an array
         if (!newUser.passports) {
@@ -151,10 +160,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    const setUserAvatar = (url: string | null) => {
+    const setUserAvatar = (val: string | null) => {
         setUser(prev => {
             if (!prev) return prev;
-            const updated = { ...prev, avatarUrl: url || undefined };
+            const updated: any = { ...prev };
+            if (!val) {
+                updated.avatarUrl = undefined;
+                updated.avatarBase64 = undefined;
+            } else if (val.startsWith && val.startsWith('data:')) {
+                updated.avatarBase64 = val;
+                updated.avatarUrl = undefined;
+            } else {
+                updated.avatarUrl = val;
+                updated.avatarBase64 = undefined;
+            }
             localStorage.setItem('user', JSON.stringify(updated));
             return updated;
         });
