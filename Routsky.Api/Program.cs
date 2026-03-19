@@ -20,7 +20,7 @@ builder.Services.AddCors(options =>
     if (builder.Environment.IsProduction())
     {
         options.AddPolicy("AllowAll", policy =>
-            policy.WithOrigins("https://routsky.com", "https://routsky.xyz")
+            policy.WithOrigins("https://routsky.com")
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials());
@@ -72,10 +72,10 @@ builder.Services.AddKernel()
         apiKey: geminiKey);
 
 // ── JWT Authentication ──
-var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtKey = builder.Configuration["JwtSettings:Secret"] ?? builder.Configuration["Jwt:Key"];
 if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(jwtKey))
     throw new InvalidOperationException(
-        "FATAL: Jwt:Key is not configured. Set the JWT_KEY environment variable or Jwt__Key in your configuration.");
+        "FATAL: JwtSettings:Secret is not configured. Set the JWT_SETTINGS__SECRET environment variable or JwtSettings__Secret in your configuration.");
 
 var key = System.Text.Encoding.ASCII.GetBytes(
     jwtKey ?? "SuperSecretKeyForDevelopmentOnly123!");
@@ -104,7 +104,12 @@ builder.Services.AddAuthentication(options =>
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    
+
+    // Correlation cookie settings for both environments (strict for production)
+    options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
+    options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+    options.CorrelationCookie.HttpOnly = true;
+
     // ── Production: Secure state cookie for cross-site OIDC flow ──
     if (builder.Environment.IsProduction())
     {
@@ -131,49 +136,52 @@ builder.Services.AddAuthentication(options =>
     options.ClientId = builder.Configuration["Authentication:Github:ClientId"] ?? "";
     options.ClientSecret = builder.Configuration["Authentication:Github:ClientSecret"] ?? "";
     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
+    // Correlation cookie settings for both environments
+    options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
+    options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+    options.CorrelationCookie.HttpOnly = true;
     
     // ── Request email scope from GitHub ──
     options.Scope.Add("user:email");
     
-    // ── Production: Manual email fetch if claim is missing ──
-    if (builder.Environment.IsProduction())
+    // ── Manual email fetch if claim is missing ──
+    options.Events.OnCreatingTicket = async context =>
     {
-        options.Events.OnCreatingTicket = async context =>
+        var email = context.Principal?.FindFirstValue(ClaimTypes.Email)
+                 ?? context.Principal?.FindFirstValue("urn:github:email");
+        
+        if (string.IsNullOrEmpty(email) && context.AccessToken is not null)
         {
-            var email = context.Principal?.FindFirstValue(ClaimTypes.Email)
-                     ?? context.Principal?.FindFirstValue("urn:github:email");
-            
-            if (string.IsNullOrEmpty(email) && context.AccessToken is not null)
+            try
             {
-                try
+                using var httpClient = new System.Net.Http.HttpClient();
+                httpClient.DefaultRequestHeaders.Add("Authorization", $"token {context.AccessToken}");
+                httpClient.DefaultRequestHeaders.Add("User-Agent", "Routsky");
+                
+                var response = await httpClient.GetAsync("https://api.github.com/user/emails");
+                if (response.IsSuccessStatusCode)
                 {
-                    using var httpClient = new System.Net.Http.HttpClient();
-                    httpClient.DefaultRequestHeaders.Add("Authorization", $"token {context.AccessToken}");
-                    httpClient.DefaultRequestHeaders.Add("User-Agent", "Routsky");
-                    
-                    var response = await httpClient.GetAsync("https://api.github.com/user/emails");
-                    if (response.IsSuccessStatusCode)
+                    var json = await response.Content.ReadAsStringAsync();
+                    var emails = System.Text.Json.JsonDocument.Parse(json).RootElement.EnumerateArray();
+
+                    var primaryEmail = emails.FirstOrDefault(e => e.GetProperty("primary").GetBoolean() && e.GetProperty("verified").GetBoolean())
+                                              .GetProperty("email").GetString();
+
+                    if (!string.IsNullOrEmpty(primaryEmail))
                     {
-                        var json = await response.Content.ReadAsStringAsync();
-                        var emails = System.Text.Json.JsonDocument.Parse(json).RootElement.EnumerateArray();
-                        var primaryEmail = emails.FirstOrDefault(e => e.GetProperty("primary").GetBoolean())
-                                                  .GetProperty("email").GetString();
-                        
-                        if (!string.IsNullOrEmpty(primaryEmail))
-                        {
-                            var claimsIdentity = (System.Security.Claims.ClaimsIdentity)context.Principal!.Identity!;
-                            claimsIdentity.AddClaim(new System.Security.Claims.Claim(ClaimTypes.Email, primaryEmail));
-                        }
+                        var claimsIdentity = (System.Security.Claims.ClaimsIdentity)context.Principal!.Identity!;
+                        claimsIdentity.AddClaim(new System.Security.Claims.Claim(ClaimTypes.Email, primaryEmail));
                     }
                 }
-                catch (Exception ex)
-                {
-                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                    logger.LogError(ex, "Failed to fetch email from GitHub API");
-                }
             }
-        };
-    }
+            catch (Exception ex)
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "Failed to fetch email from GitHub API");
+            }
+        }
+    };
 });
 // .AddApple(options =>
 // {

@@ -83,8 +83,13 @@ public class AuthController : ControllerBase
             var frontendUrl = _authService.GetFrontendRedirectUrl();
             var userJson = System.Web.HttpUtility.UrlEncode(System.Text.Json.JsonSerializer.Serialize(response));
             var redirectUri = $"{frontendUrl}/auth/callback?token={response.Token}&user={userJson}";
-            
-            logger.LogInformation("[SocialCallback] Redirecting to: {RedirectUri}", frontendUrl + "/auth/callback");
+
+            if (frontendUrl.Equals("https://routsky.com", StringComparison.OrdinalIgnoreCase))
+            {
+                redirectUri = $"https://routsky.com/auth/callback?token={response.Token}&user={userJson}";
+            }
+
+            logger.LogInformation("[SocialCallback] Redirecting to: {RedirectUri}", redirectUri);
             return Redirect(redirectUri);
         }
         catch (Exception ex)

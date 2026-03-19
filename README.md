@@ -95,6 +95,32 @@ JWT-based authentication with protected routes. Register new accounts via `/regi
 
 ---
 
+## Production Deployment (routsky.com)
+
+To ensure secure enterprise-grade production behavior, apply these configuration rules:
+
+- `ASPNETCORE_ENVIRONMENT=Production`
+- `JwtSettings:Secret` must be set in environment variables (or `appsettings.Production.json`):
+  - `JWT_SETTINGS__SECRET="<strong-secret>"`
+  - fallback for non-prod: `Jwt:Key` (`SuperSecretKeyForDevelopmentOnly123!` in dev only)
+
+### OAuth security hardening
+- Social callbacks are enforced to production frontend URL:
+  - `https://routsky.com/auth/callback`
+  - no `.xyz` or `localhost` redirect targets in production
+- GitHub OAuth request scope includes `user:email`.
+- `OnCreatingTicket` fetches email from `https://api.github.com/user/emails` if not provided.
+
+### Cookie and proxy settings
+- `app.UseForwardedHeaders()` is used first in the middleware pipeline for correct proxy URL scheme
+- `CookiePolicyOptions.MinimumSameSitePolicy = SameSiteMode.Unspecified`
+- Google/GitHub correlation cookies:
+  - `SameSite=None`
+  - `Secure=true`
+  - `HttpOnly=true`
+
+---
+
 ## How to Test
 
 1. Open **http://localhost:5173** in your browser

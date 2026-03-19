@@ -223,6 +223,17 @@ public class AuthService : IAuthService
 
     public string GetFrontendRedirectUrl()
     {
+        var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "";
+        var isProduction = environment.Equals("Production", StringComparison.OrdinalIgnoreCase);
+
+        // Strict production redirect target. No .xyz/localhost in production.
+        if (isProduction)
+        {
+            const string productionUrl = "https://routsky.com";
+            _logger.LogInformation("[Social Auth] Production enforced frontend redirect URL: {FrontendUrl}", productionUrl);
+            return productionUrl;
+        }
+
         var url = _configuration["FrontendUrl"] ?? "https://routsky.com";
         _logger.LogInformation("[Social Auth] Frontend redirect URL: {FrontendUrl}", url);
         return url;
@@ -231,18 +242,26 @@ public class AuthService : IAuthService
     private AuthResponseDto GenerateAuthResponse(User user, UserProfile? profile)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var jwtKey = _configuration["Jwt:Key"];
-        
+        var jwtKey = _configuration["JwtSettings:Secret"] ?? _configuration["Jwt:Key"];
+        var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "";
+        var isProduction = environment.Equals("Production", StringComparison.OrdinalIgnoreCase);
+
         if (string.IsNullOrWhiteSpace(jwtKey))
         {
-            _logger.LogError("[JWT Generation] CRITICAL: Jwt:Key is not configured. Using development fallback.");
+            if (isProduction)
+            {
+                _logger.LogError("[JWT Generation] FATAL: JwtSettings:Secret is not configured in production.");
+                throw new InvalidOperationException("JWT secret is not configured in production.");
+            }
+
+            _logger.LogWarning("[JWT Generation] JwtSettings:Secret is not configured. Using development fallback.");
             jwtKey = "SuperSecretKeyForDevelopmentOnly123!";
         }
         else
         {
-            _logger.LogInformation("[JWT Generation] Jwt:Key is properly configured (length: {KeyLength})", jwtKey.Length);
+            _logger.LogInformation("[JWT Generation] Jwt secret configured (length: {KeyLength})", jwtKey.Length);
         }
-        
+
         var key = Encoding.ASCII.GetBytes(jwtKey);
         var tokenDescriptor = new SecurityTokenDescriptor
         {
