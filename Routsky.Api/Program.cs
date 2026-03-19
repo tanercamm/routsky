@@ -92,6 +92,8 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
     options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
     options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.Path = "/";
 }) // Required for temporary social auth storage
 .AddJwtBearer(options =>
 {
@@ -210,13 +212,14 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// --- RENDER PROXY KABA KUVVET ÇÖZÜMÜ ---
+// --- RENDER PROXY KABA KUVVET ÇÖZÜMÜ V2 ---
 app.Use((context, next) =>
 {
     context.Request.Scheme = "https";
+    context.Request.Host = new HostString("routsky-api-prod.onrender.com"); // BURASI EKLENDİ (Portu eziyoruz)
     return next();
 });
-// --------------------------------------
+// ------------------------------------------
 
 // ── Forwarded Headers MUST be first in pipeline (Render reverse proxy) ──
 app.UseForwardedHeaders();
