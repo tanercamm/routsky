@@ -1,6 +1,6 @@
 services:
   # ── Edge Reverse Proxy (SSL termination + domain routing) ──
-  # Entry point for routsky.xyz
+  # Entry point for routsky.com
   nginx-proxy:
     image: nginx:alpine
     container_name: routsky_staging_proxy

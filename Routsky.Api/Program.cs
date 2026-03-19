@@ -224,7 +224,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost,
     RequireHeaderSymmetry = false,
-    AllowedHosts = new[] { "routsky.com", "routsky.xyz" }
+    AllowedHosts = new[] { "routsky.com" }
 });
 
 // ── V2 Database Seed ──

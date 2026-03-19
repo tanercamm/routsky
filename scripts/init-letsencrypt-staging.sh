@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# Bootstrap Let's Encrypt certificates for Routsky staging (routsky.xyz).
+# Bootstrap Let's Encrypt certificates for Routsky staging (routsky.com).
 #
 # The staging compose exposes the SSL proxy on ports 8080 (HTTP) and 8443
 # (HTTPS) so it can coexist with the production stack on the same server.
 #
 # Usage:
 #   1. Copy .env.staging.example → .env.staging and fill in values
-#   2. Ensure DNS A records for routsky.xyz & api.routsky.xyz point to this server
+#   2. Ensure DNS A records for routsky.com & api.routsky.com point to this server
 #   3. Run: bash scripts/init-letsencrypt-staging.sh
 
 set -euo pipefail

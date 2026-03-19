@@ -1,4 +1,4 @@
-# ── Cloudflare-Compatible Nginx Proxy for routsky.xyz ──
+# ── Cloudflare-Compatible Nginx Proxy for routsky.com ──
 # SSL Mode: Full / Full (strict) — Cloudflare terminates client SSL,
 # then connects to origin over HTTPS (port 443). Port 80 serves
 # ACME challenges and acts as a fallback to avoid redirect loops.
@@ -31,7 +31,7 @@ server {
     add_header Expires "0" always;
 }
 
-# ── HTTPS: Frontend (routsky.xyz) ──
+# ── HTTPS: Frontend (routsky.com) ──
 server {
     listen 443;
     http2 on;
@@ -82,7 +82,7 @@ server {
     }
 }
 
-# ── HTTPS: API (api.routsky.xyz) ──
+# ── HTTPS: API (api.routsky.com) ──
 server {
     listen 443;
     http2 on;
