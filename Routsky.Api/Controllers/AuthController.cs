@@ -62,22 +62,36 @@ public class AuthController : ControllerBase
     [HttpGet("callback/{provider}")]
     public async Task<IActionResult> SocialCallback(string provider)
     {
+        var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AuthController>>();
         try
         {
+            logger.LogInformation("[SocialCallback] Starting callback for provider: {Provider}", provider);
+            
             var result = await HttpContext.AuthenticateAsync(provider);
             if (!result.Succeeded)
+            {
+                logger.LogError("[SocialCallback] Authentication failed for provider {Provider}: {Failure}", provider, result.Failure?.Message);
                 return BadRequest(new { message = $"External authentication failed: {result.Failure?.Message}" });
+            }
 
+            logger.LogInformation("[SocialCallback] Provider authentication succeeded, calling HandleSocialAuthAsync");
             var response = await _authService.HandleSocialAuthAsync(result.Principal);
+            logger.LogInformation("[SocialCallback] HandleSocialAuthAsync completed successfully for user: {UserId}", response.Id);
             
             // Redirect to frontend with token in URL (temporary) or via a bridge page
             // For now, let's redirect to dashboard with the token as a fragment
             var frontendUrl = _authService.GetFrontendRedirectUrl();
-            return Redirect($"{frontendUrl}/auth/callback?token={response.Token}&user={System.Web.HttpUtility.UrlEncode(System.Text.Json.JsonSerializer.Serialize(response))}");
+            var userJson = System.Web.HttpUtility.UrlEncode(System.Text.Json.JsonSerializer.Serialize(response));
+            var redirectUri = $"{frontendUrl}/auth/callback?token={response.Token}&user={userJson}";
+            
+            logger.LogInformation("[SocialCallback] Redirecting to: {RedirectUri}", frontendUrl + "/auth/callback");
+            return Redirect(redirectUri);
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AuthController>>();
+            logger.LogError(ex, "[SocialCallback] EXCEPTION in SocialCallback for provider {Provider}: {Message}\\nStackTrace: {StackTrace}", provider, ex.Message, ex.StackTrace);
+            return BadRequest(new { message = ex.Message, details = ex.StackTrace });
         }
     }
 
