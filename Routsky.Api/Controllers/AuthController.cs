@@ -70,6 +70,25 @@ public class AuthController : ControllerBase
         }
     }
 
+    public class GitHubAuthRequest
+    {
+        public string Code { get; set; } = string.Empty;
+    }
+
+    [HttpPost("github")]
+    public async Task<ActionResult<AuthResponseDto>> GitHubLogin([FromBody] GitHubAuthRequest request)
+    {
+        try
+        {
+            var response = await _authService.HandleGitHubAuthAsync(request.Code);
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+
     [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<AuthResponseDto>> GetMe()

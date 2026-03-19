@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { RoutskyLogo } from './RoutskyLogo';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { login as apiLogin, register as apiRegister, googleLogin, BASE_URL } from '../api/routskyApi';
+import { login as apiLogin, register as apiRegister, googleLogin, githubLogin } from '../api/routskyApi';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Input } from './ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -227,10 +227,36 @@ export const AuthGlobeFlip = () => {
     };
 
     const handleSocialLogin = (provider: string) => {
-        const apiBase = BASE_URL;
-        const baseUrl = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
-        window.location.href = `${baseUrl}/auth/social/${provider}`;
+        if (provider === 'GitHub') {
+            const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+            window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user:email`;
+        }
     };
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        
+        if (code) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+            const processGitHubLogin = async () => {
+                setLoginError('');
+                setLoginLoading(true);
+                try {
+                    const response = await githubLogin(code);
+                    login(response.token, response);
+                    navigate('/');
+                } catch (err: any) {
+                    setLoginError(err.response?.data?.message || 'GitHub Login failed. Please try again.');
+                } finally {
+                    setLoginLoading(false);
+                }
+            };
+            
+            processGitHubLogin();
+        }
+    }, [login, navigate]);
 
     const toggleFlip = () => {
         setStep(1);
