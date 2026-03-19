@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.SemanticKernel;
 using Routsky.Api.Data;
@@ -71,8 +72,13 @@ builder.Services.AddKernel()
         apiKey: geminiKey);
 
 // ── JWT Authentication ──
+var jwtKey = builder.Configuration["Jwt:Key"];
+if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(jwtKey))
+    throw new InvalidOperationException(
+        "FATAL: Jwt:Key is not configured. Set the JWT_KEY environment variable or Jwt__Key in your configuration.");
+
 var key = System.Text.Encoding.ASCII.GetBytes(
-    builder.Configuration["Jwt:Key"] ?? "SuperSecretKeyForDevelopmentOnly123!");
+    jwtKey ?? "SuperSecretKeyForDevelopmentOnly123!");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -97,11 +103,77 @@ builder.Services.AddAuthentication(options =>
 {
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    
+    // ── Production: Secure state cookie for cross-site OIDC flow ──
+    if (builder.Environment.IsProduction())
+    {
+        options.Events.OnRedirectToAuthorizationEndpoint = context =>
+        {
+            // Ensure state cookie is secure and allows cross-site usage
+            var correlationId = context.Request.Query["correlation_id"].ToString() ?? Guid.NewGuid().ToString();
+            context.Response.Cookies.Append(
+                ".AspNetCore.Correlation.Google",
+                correlationId,
+                new Microsoft.AspNetCore.Http.CookieOptions
+                {
+                    Secure = true,
+                    SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None,
+                    HttpOnly = true
+                });
+            context.Response.Redirect(context.RedirectUri);
+            return System.Threading.Tasks.Task.CompletedTask;
+        };
+    }
 })
 .AddGitHub(options =>
 {
     options.ClientId = builder.Configuration["Authentication:Github:ClientId"] ?? "";
     options.ClientSecret = builder.Configuration["Authentication:Github:ClientSecret"] ?? "";
+    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    
+    // ── Request email scope from GitHub ──
+    options.Scope.Add("user:email");
+    
+    // ── Production: Manual email fetch if claim is missing ──
+    if (builder.Environment.IsProduction())
+    {
+        options.Events.OnCreatingTicket = async context =>
+        {
+            var email = context.Principal?.FindFirstValue(ClaimTypes.Email)
+                     ?? context.Principal?.FindFirstValue("urn:github:email");
+            
+            if (string.IsNullOrEmpty(email) && context.AccessToken is not null)
+            {
+                try
+                {
+                    using var httpClient = new System.Net.Http.HttpClient();
+                    httpClient.DefaultRequestHeaders.Add("Authorization", $"token {context.AccessToken}");
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "Routsky");
+                    
+                    var response = await httpClient.GetAsync("https://api.github.com/user/emails");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var json = await response.Content.ReadAsStringAsync();
+                        var emails = System.Text.Json.JsonDocument.Parse(json).RootElement.EnumerateArray();
+                        var primaryEmail = emails.FirstOrDefault(e => e.GetProperty("primary").GetBoolean())
+                                                  .GetProperty("email").GetString();
+                        
+                        if (!string.IsNullOrEmpty(primaryEmail))
+                        {
+                            var claimsIdentity = (System.Security.Claims.ClaimsIdentity)context.Principal!.Identity!;
+                            claimsIdentity.AddClaim(new System.Security.Claims.Claim(ClaimTypes.Email, primaryEmail));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogError(ex, "Failed to fetch email from GitHub API");
+                }
+            }
+        };
+    }
 });
 // .AddApple(options =>
 // {
@@ -114,6 +186,13 @@ builder.Services.AddAuthentication(options =>
 //         return await System.IO.File.ReadAllTextAsync(privateKeyPath, cancellationToken);
 //     };
 // });
+
+// ── Cookie Policy (for cross-site OAuth flows) ──
+builder.Services.Configure<Microsoft.AspNetCore.Builder.CookiePolicyOptions>(options =>
+{
+    options.MinimumSameSitePolicy = Microsoft.AspNetCore.Http.SameSiteMode.Unspecified;
+    options.Secure = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(opts =>
@@ -129,6 +208,17 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+// ── Forwarded Headers (for HTTPS proxy detection from Render) ──
+if (app.Environment.IsProduction())
+{
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost,
+        RequireHeaderSymmetry = false,
+        AllowedHosts = new[] { "routsky.com", "routsky.xyz" }
+    });
+}
 
 // ── V2 Database Seed ──
 using (var scope = app.Services.CreateScope())
@@ -176,6 +266,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+app.UseCookiePolicy();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
