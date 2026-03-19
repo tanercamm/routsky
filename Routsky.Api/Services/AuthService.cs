@@ -189,22 +189,30 @@ public class AuthService : IAuthService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("[Social Auth] User saved to database with ID: {UserId}", user.Id);
-
-            var profile = new UserProfile
+            try 
             {
-                UserId = user.Id,
-                Username = email.Split('@')[0],
-                Email = email,
-                Passports = new List<string> { "TR" },
-                Origin = "IST" // Default for Routsky
-            };
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("[Social Auth] User saved to database with ID: {UserId}", user.Id);
 
-            _context.UserProfiles.Add(profile);
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("[Social Auth] UserProfile created for UserId: {UserId}", user.Id);
+                var profile = new UserProfile
+                {
+                    UserId = user.Id,
+                    Username = email.Split('@')[0],
+                    Email = email,
+                    Passports = new List<string> { "TR" },
+                    Origin = "IST" // Default for Routsky
+                };
+
+                _context.UserProfiles.Add(profile);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("[Social Auth] UserProfile created for UserId: {UserId}", user.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Social Auth] Database error while saving new user/profile: {Message}\\nStackTrace: {StackTrace}", ex.Message, ex.StackTrace);
+                throw;
+            }
         }
         else
         {

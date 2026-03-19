@@ -200,8 +200,8 @@ builder.Services.AddAuthentication(options =>
 // ── Cookie Policy (for cross-site OAuth flows) ──
 builder.Services.Configure<Microsoft.AspNetCore.Builder.CookiePolicyOptions>(options =>
 {
+    options.CheckConsentNeeded = context => false;
     options.MinimumSameSitePolicy = Microsoft.AspNetCore.Http.SameSiteMode.Unspecified;
-    options.Secure = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
 });
 
 builder.Services.AddControllers()
