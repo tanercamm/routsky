@@ -51,39 +51,22 @@ public class AuthController : ControllerBase
         }
     }
 
-    [HttpGet("social/{provider}")]
-    public IActionResult SocialLogin(string provider)
+    public class GoogleAuthRequest
     {
-        var redirectUrl = Url.Action(nameof(SocialCallback), "Auth", new { provider });
-        var properties = _authService.GetSocialAuthProperties(provider, redirectUrl!);
-        return Challenge(properties, provider);
+        public string Credential { get; set; } = string.Empty;
     }
 
-    [HttpGet("callback/{provider}")]
-    public async Task<IActionResult> SocialCallback(string provider)
+    [HttpPost("google")]
+    public async Task<ActionResult<AuthResponseDto>> GoogleLogin([FromBody] GoogleAuthRequest request)
     {
-        var logger = HttpContext.RequestServices.GetRequiredService<ILogger<AuthController>>();
         try
         {
-            logger.LogInformation("[SocialCallback] Starting callback for provider: {Provider}", provider);
-            
-            var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            if (!result.Succeeded)
-            {
-                logger.LogError("[SocialCallback] Authentication failed for scheme {Scheme}: {Failure}", CookieAuthenticationDefaults.AuthenticationScheme, result.Failure?.Message);
-                return BadRequest(new { message = $"External authentication failed: {result.Failure?.Message}" });
-            }
-
-            logger.LogInformation("[SocialCallback] Provider authentication succeeded, calling HandleSocialAuthAsync");
-            var response = await _authService.HandleSocialAuthAsync(result.Principal);
-            logger.LogInformation("[SocialCallback] HandleSocialAuthAsync completed successfully for user: {UserId}", response.Id);
-            
-            return Redirect($"https://routsky.com/auth/callback?token={response.Token}");
+            var response = await _authService.HandleGoogleAuthAsync(request.Credential);
+            return Ok(response);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "[SocialCallback] EXCEPTION in SocialCallback for provider {Provider}: {Message}\\nStackTrace: {StackTrace}", provider, ex.Message, ex.StackTrace);
-            return BadRequest(new { message = ex.Message, details = ex.StackTrace });
+            return Unauthorized(new { message = ex.Message });
         }
     }
 

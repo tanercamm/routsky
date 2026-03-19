@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using BCrypt.Net;
+using Google.Apis.Auth;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Routsky.Api.Data;
@@ -17,8 +18,7 @@ public interface IAuthService
     Task<AuthResponseDto> GetMeAsync(int userId);
     Task<AuthResponseDto> UpdateProfileAsync(int userId, UpdateProfileRequestDto request);
     Microsoft.AspNetCore.Authentication.AuthenticationProperties GetSocialAuthProperties(string provider, string redirectUrl);
-    Task<AuthResponseDto> HandleSocialAuthAsync(ClaimsPrincipal principal);
-    string GetFrontendRedirectUrl();
+    Task<AuthResponseDto> HandleGoogleAuthAsync(string credential);
 }
 
 public class AuthService : IAuthService
@@ -154,36 +154,47 @@ public class AuthService : IAuthService
         return new Microsoft.AspNetCore.Authentication.AuthenticationProperties { RedirectUri = redirectUrl };
     }
 
-    public async Task<AuthResponseDto> HandleSocialAuthAsync(ClaimsPrincipal principal)
+    public async Task<AuthResponseDto> HandleGoogleAuthAsync(string credential)
     {
-        _logger.LogInformation("[Social Auth] Starting HandleSocialAuthAsync");
+        _logger.LogInformation("[Google Auth] Validating Google JWT token.");
         
-        var email = principal.FindFirstValue(ClaimTypes.Email);
-        if (string.IsNullOrEmpty(email))
+        GoogleJsonWebSignature.Payload payload;
+        try
         {
-            _logger.LogError("[Social Auth] Email not provided by social provider");
-            throw new Exception("Email not provided by social provider.");
+            payload = await GoogleJsonWebSignature.ValidateAsync(credential);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Google Auth] Invalid Google JWT.");
+            throw new Exception("Invalid Google token.");
         }
 
-        _logger.LogInformation("[Social Auth] Processing email: {Email}", email);
+        var email = payload.Email;
+        if (string.IsNullOrEmpty(email))
+        {
+            _logger.LogError("[Google Auth] Email not provided by Google.");
+            throw new Exception("Email not provided by Google.");
+        }
+
+        _logger.LogInformation("[Google Auth] Processing email: {Email}", email);
         
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         bool isNewUser = user == null;
         
-        _logger.LogInformation("[Social Auth] User exists: {UserExists}, IsNewUser: {IsNewUser}", user != null, isNewUser);
+        _logger.LogInformation("[Google Auth] User exists: {UserExists}, IsNewUser: {IsNewUser}", user != null, isNewUser);
 
         if (isNewUser)
         {
-            var name = principal.FindFirstValue(ClaimTypes.Name) ?? principal.FindFirstValue(ClaimTypes.GivenName);
-            var parts = name?.Split(' ', 2);
+            var givenName = payload.GivenName ?? payload.Name ?? "";
+            var familyName = payload.FamilyName ?? "";
             
-            _logger.LogInformation("[Social Auth] Creating new user with email: {Email}, name: {Name}", email, name ?? "(empty)");
+            _logger.LogInformation("[Google Auth] Creating new user with email: {Email}, name: {Name}", email, givenName);
             
             user = new User
             {
                 Email = email,
-                FirstName = parts?.Length > 0 ? parts[0] : "",
-                LastName = parts?.Length > 1 ? parts[1] : "",
+                FirstName = givenName,
+                LastName = familyName,
                 PasswordHash = "OAUTH_LOGIN", // Placeholder for external users
                 Role = "User",
                 CreatedAt = DateTime.UtcNow
@@ -193,7 +204,7 @@ public class AuthService : IAuthService
             {
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("[Social Auth] User saved to database with ID: {UserId}", user.Id);
+                _logger.LogInformation("[Google Auth] User saved to database with ID: {UserId}", user.Id);
 
                 var profile = new UserProfile
                 {
@@ -206,45 +217,27 @@ public class AuthService : IAuthService
 
                 _context.UserProfiles.Add(profile);
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("[Social Auth] UserProfile created for UserId: {UserId}", user.Id);
+                _logger.LogInformation("[Google Auth] UserProfile created for UserId: {UserId}", user.Id);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Social Auth] Database error while saving new user/profile: {Message}\\nStackTrace: {StackTrace}", ex.Message, ex.StackTrace);
+                _logger.LogError(ex, "[Google Auth] Database error while saving new user/profile: {Message}\\nStackTrace: {StackTrace}", ex.Message, ex.StackTrace);
                 throw;
             }
         }
         else
         {
-            _logger.LogInformation("[Social Auth] User already exists: {UserId}", user!.Id);
+            _logger.LogInformation("[Google Auth] User already exists: {UserId}", user!.Id);
         }
 
-        _logger.LogInformation("[Social Auth] Fetching UserProfile for UserId: {UserId}", user!.Id);
+        _logger.LogInformation("[Google Auth] Fetching UserProfile for UserId: {UserId}", user!.Id);
         var userProfile = await _context.UserProfiles.FirstAsync(p => p.UserId == user!.Id);
-        _logger.LogInformation("[Social Auth] UserProfile found, generating JWT token");
+        _logger.LogInformation("[Google Auth] UserProfile found, generating JWT token");
         
         var response = GenerateAuthResponse(user!, userProfile);
-        _logger.LogInformation("[Social Auth] JWT token generated successfully for user: {Email}", email);
+        _logger.LogInformation("[Google Auth] JWT token generated successfully for user: {Email}", email);
         
         return response;
-    }
-
-    public string GetFrontendRedirectUrl()
-    {
-        var environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? "";
-        var isProduction = environment.Equals("Production", StringComparison.OrdinalIgnoreCase);
-
-        // Strict production redirect target. No .xyz/localhost in production.
-        if (isProduction)
-        {
-            const string productionUrl = "https://routsky.com";
-            _logger.LogInformation("[Social Auth] Production enforced frontend redirect URL: {FrontendUrl}", productionUrl);
-            return productionUrl;
-        }
-
-        var url = _configuration["FrontendUrl"] ?? "https://routsky.com";
-        _logger.LogInformation("[Social Auth] Frontend redirect URL: {FrontendUrl}", url);
-        return url;
     }
 
     private AuthResponseDto GenerateAuthResponse(User user, UserProfile? profile)

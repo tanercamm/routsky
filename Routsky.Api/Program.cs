@@ -82,19 +82,10 @@ var key = System.Text.Encoding.ASCII.GetBytes(
 
 builder.Services.AddAuthentication(options =>
 {
-    options.DefaultScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultSignInScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultScheme = Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme;
 })
-.AddCookie(options =>
-{
-    options.Cookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
-    options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-    options.Cookie.Path = "/";
-}) // Required for temporary social auth storage
 .AddJwtBearer(options =>
 {
     options.RequireHttpsMetadata = false;
@@ -105,68 +96,6 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key),
         ValidateIssuer = false,
         ValidateAudience = false
-    };
-})
-.AddGoogle(options =>
-{
-    options.CallbackPath = "/api/Auth/callback/Google";
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
-    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-
-    options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
-    options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-    options.CorrelationCookie.HttpOnly = true;
-})
-.AddGitHub(options =>
-{
-    options.CallbackPath = "/api/Auth/callback/GitHub";
-    options.ClientId = builder.Configuration["Authentication:GitHub:ClientId"]!;
-    options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"]!;
-    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-
-    options.CorrelationCookie.SameSite = Microsoft.AspNetCore.Http.SameSiteMode.None;
-    options.CorrelationCookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-    options.CorrelationCookie.HttpOnly = true;
-
-    options.Scope.Add("user:email");
-
-    // ── Manual email fetch if claim is missing ──
-    options.Events.OnCreatingTicket = async context =>
-    {
-        var email = context.Principal?.FindFirstValue(ClaimTypes.Email)
-                 ?? context.Principal?.FindFirstValue("urn:github:email");
-
-        if (string.IsNullOrEmpty(email) && context.AccessToken is not null)
-        {
-            try
-            {
-                using var httpClient = new System.Net.Http.HttpClient();
-                httpClient.DefaultRequestHeaders.Add("Authorization", $"token {context.AccessToken}");
-                httpClient.DefaultRequestHeaders.Add("User-Agent", "Routsky");
-
-                var response = await httpClient.GetAsync("https://api.github.com/user/emails");
-                if (response.IsSuccessStatusCode)
-                {
-                    var json = await response.Content.ReadAsStringAsync();
-                    var emails = System.Text.Json.JsonDocument.Parse(json).RootElement.EnumerateArray();
-
-                    var primaryEmail = emails.FirstOrDefault(e => e.GetProperty("primary").GetBoolean() && e.GetProperty("verified").GetBoolean())
-                                              .GetProperty("email").GetString();
-
-                    if (!string.IsNullOrEmpty(primaryEmail))
-                    {
-                        var claimsIdentity = (System.Security.Claims.ClaimsIdentity)context.Principal!.Identity!;
-                        claimsIdentity.AddClaim(new System.Security.Claims.Claim(ClaimTypes.Email, primaryEmail));
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                logger.LogError(ex, "Failed to fetch email from GitHub API");
-            }
-        }
     };
 });
 // .AddApple(options =>
@@ -189,13 +118,6 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// ── Cookie Policy (for cross-site OAuth flows) ──
-builder.Services.AddCookiePolicy(options =>
-{
-    options.CheckConsentNeeded = context => false;
-    options.MinimumSameSitePolicy = Microsoft.AspNetCore.Http.SameSiteMode.None;
-    options.Secure = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
-});
 
 builder.Services.AddControllers()
     .AddJsonOptions(opts =>
@@ -223,7 +145,6 @@ app.Use((context, next) =>
 
 // ── Forwarded Headers MUST be first in pipeline (Render reverse proxy) ──
 app.UseForwardedHeaders();
-app.UseCookiePolicy();
 
 // ── V2 Database Seed ──
 using (var scope = app.Services.CreateScope())

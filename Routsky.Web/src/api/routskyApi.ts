@@ -36,6 +36,13 @@ export const login = async (credentials: { email: string; password: string }) =>
     return response.data;
 };
 
+export const googleLogin = async (credential: string) => {
+    const url = getApiUrl('/auth/google');
+    console.log("Calling googleLogin at:", url);
+    const response = await api.post(url, { credential });
+    return response.data;
+};
+
 export const register = async (userData: { email: string; password: string; firstName: string; lastName: string; passports?: string[] }) => {
     const url = getApiUrl('/auth/register');
     console.log("Calling register at:", url);
