@@ -329,42 +329,38 @@ public class AuthService : IAuthService
         _logger.LogInformation("[GitHub Auth] Processing email: {Email}", email);
 
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-        bool isNewUser = user == null;
-
-        if (isNewUser)
+        if (user == null)
         {
             var parts = name?.Split(' ', 2);
-            var firstName = parts?.Length > 0 ? parts[0] : "";
-            var lastName = parts?.Length > 1 ? parts[1] : "";
-
             user = new User
             {
                 Email = email,
-                FirstName = firstName,
-                LastName = lastName,
+                FirstName = parts?.Length > 0 ? parts[0] : "",
+                LastName = parts?.Length > 1 ? parts[1] : "",
                 PasswordHash = "OAUTH_LOGIN",
                 Role = "User",
                 CreatedAt = DateTime.UtcNow
             };
-
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+        }
 
-            var profile = new UserProfile
+        var userProfile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == user.Id);
+        if (userProfile == null)
+        {
+            userProfile = new UserProfile
             {
                 UserId = user.Id,
-                Username = email.Split('@')[0],
+                Username = email.Split('@')[0] + new Random().Next(100, 9999).ToString(), // Guaranteed unique username
                 Email = email,
                 Passports = new List<string> { "TR" },
                 Origin = "IST"
             };
-
-            _context.UserProfiles.Add(profile);
+            _context.UserProfiles.Add(userProfile);
             await _context.SaveChangesAsync();
         }
 
-        var userProfile = await _context.UserProfiles.FirstAsync(p => p.UserId == user!.Id);
-        return GenerateAuthResponse(user!, userProfile);
+        return GenerateAuthResponse(user, userProfile);
     }
 
     private AuthResponseDto GenerateAuthResponse(User user, UserProfile? profile)
