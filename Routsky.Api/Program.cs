@@ -101,6 +101,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddGoogle(options =>
 {
+    options.CallbackPath = "/api/Auth/callback/Google";
     options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
     options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -133,6 +134,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddGitHub(options =>
 {
+    options.CallbackPath = "/api/Auth/callback/GitHub";
     options.ClientId = builder.Configuration["Authentication:Github:ClientId"] ?? "";
     options.ClientSecret = builder.Configuration["Authentication:Github:ClientSecret"] ?? "";
     options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -217,16 +219,13 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// ── Forwarded Headers (for HTTPS proxy detection from Render) ──
-if (app.Environment.IsProduction())
+// ── Forwarded Headers (Unconditional for Proxy) ──
+app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
-    app.UseForwardedHeaders(new ForwardedHeadersOptions
-    {
-        ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost,
-        RequireHeaderSymmetry = false,
-        AllowedHosts = new[] { "routsky.com", "routsky.xyz" }
-    });
-}
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost,
+    RequireHeaderSymmetry = false,
+    AllowedHosts = new[] { "routsky.com", "routsky.xyz" }
+});
 
 // ── V2 Database Seed ──
 using (var scope = app.Services.CreateScope())
