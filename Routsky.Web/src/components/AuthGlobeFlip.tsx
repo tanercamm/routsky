@@ -3,7 +3,7 @@ import { RoutskyLogo } from './RoutskyLogo';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { login as apiLogin, register as apiRegister, googleLogin, BASE_URL } from '../api/routskyApi';
-import { GoogleLogin } from '@react-oauth/google';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { Input } from './ui/Input';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -307,8 +307,8 @@ export const AuthGlobeFlip = () => {
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
                         background: 'transparent',
-                        filter: isLight 
-                            ? `drop-shadow(0 0 30px ${accent.primary})` 
+                        filter: isLight
+                            ? `drop-shadow(0 0 30px ${accent.primary})`
                             : `drop-shadow(0 0 15px ${accent.primary}80)`
                     }}
                 >
@@ -424,13 +424,15 @@ export const AuthGlobeFlip = () => {
                                             <div className="flex gap-3">
                                                 <div className={`flex-1 flex items-center justify-center h-12 rounded-xl transition-all duration-500 group border relative ${isLight ? 'bg-white border-gray-200 hover:border-gray-300' : 'bg-white/5 border-white/10 hover:border-white/20'}`}>
                                                     <div className="w-[40px] h-[40px] flex items-center justify-center overflow-hidden mix-blend-multiply dark:mix-blend-normal">
-                                                        <GoogleLogin
-                                                            onSuccess={handleGoogleSuccess}
-                                                            onError={() => setLoginError('Google Login widget failed')}
-                                                            type="icon"
-                                                            theme={isLight ? "outline" : "filled_black"}
-                                                            shape="rectangular"
-                                                        />
+                                                        <GoogleOAuthProvider clientId="1020738288595-jco4igvi1dg0ojd80vbq06aiqm9j7tif.apps.googleusercontent.com">
+                                                            <GoogleLogin
+                                                                onSuccess={handleGoogleSuccess}
+                                                                onError={() => setLoginError('Google Login widget failed')}
+                                                                type="icon"
+                                                                theme={isLight ? "outline" : "filled_black"}
+                                                                shape="rectangular"
+                                                            />
+                                                        </GoogleOAuthProvider>
                                                     </div>
                                                 </div>
                                                 <button type="button"
