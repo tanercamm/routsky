@@ -86,15 +86,27 @@ Respond ONLY with JSON, no markdown: {{""minutes"": N, ""costUsd"": N}}");
         if (uncached.Count == 0) return;
 
         _logger.LogInformation(
-            "[GeminiClient] Request sent to Google AI — batch estimating {Count} flight routes",
+            "[GeminiClient] Request sent to Google AI — batch estimating {Count} flight routes in chunks",
             uncached.Count);
 
-        var routeLines = string.Join("\n",
-            uncached.Select((p, i) => $"  {i + 1}. {p.Origin} → {p.Destination}"));
-
         var chatService = _kernel.GetRequiredService<IChatCompletionService>();
-        var history = new ChatHistory();
-        history.AddUserMessage(
+        var settings = new PromptExecutionSettings
+        {
+            ExtensionData = new Dictionary<string, object> { { "temperature", 0.1 }, { "topP", 0.9 } }
+        };
+
+        const int chunkSize = 15;
+        var chunks = uncached.Chunk(chunkSize).ToList();
+
+        var tasks = chunks.Select(async chunk =>
+        {
+            var chunkResults = new Dictionary<string, (int Minutes, int CostUsd)>();
+
+            var routeLines = string.Join("\n",
+                chunk.Select((p, i) => $"  {i + 1}. {p.Origin} → {p.Destination}"));
+
+            var history = new ChatHistory();
+            history.AddUserMessage(
 $@"You are an aviation data expert. For each route below, estimate the approximate one-way flight time in minutes and the average economy round-trip ticket cost in USD.
 
 Routes:
@@ -103,44 +115,52 @@ Routes:
 Respond STRICTLY with a JSON array, no markdown wrapping, no explanation:
 [{{""origin"":""XXX"",""destination"":""YYY"",""minutes"":N,""costUsd"":N}}, ...]");
 
-        var settings = new PromptExecutionSettings
-        {
-            ExtensionData = new Dictionary<string, object> { { "temperature", 0.1 }, { "topP", 0.9 } }
-        };
-
-        var response = await chatService.GetChatMessageContentAsync(history, settings);
-        var json = StripMarkdownFences(response.Content?.Trim() ?? "[]");
-
-        _logger.LogInformation(
-            "[GeminiClient] Batch response received from Google AI ({Length} chars, {RouteCount} routes requested)",
-            json.Length, uncached.Count);
-
-        try
-        {
-            var estimates = JsonSerializer.Deserialize<List<BatchFlightEstimate>>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-            if (estimates != null)
+            try
             {
-                foreach (var est in estimates)
+                var response = await chatService.GetChatMessageContentAsync(history, settings);
+                var json = StripMarkdownFences(response.Content?.Trim() ?? "[]");
+
+                var estimates = JsonSerializer.Deserialize<List<BatchFlightEstimate>>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (estimates != null)
                 {
-                    if (!string.IsNullOrEmpty(est.Origin) && !string.IsNullOrEmpty(est.Destination) && est.Minutes > 0)
+                    foreach (var est in estimates)
                     {
-                        var key = $"{est.Origin.ToUpperInvariant()}-{est.Destination.ToUpperInvariant()}";
-                        _cache[key] = (est.Minutes, est.CostUsd > 0 ? est.CostUsd : 300);
+                        if (!string.IsNullOrEmpty(est.Origin) && !string.IsNullOrEmpty(est.Destination) && est.Minutes > 0)
+                        {
+                            var key = $"{est.Origin.ToUpperInvariant()}-{est.Destination.ToUpperInvariant()}";
+                            chunkResults[key] = (est.Minutes, est.CostUsd > 0 ? est.CostUsd : 300);
+                        }
                     }
                 }
             }
+            catch (Exception ex) when (ex is TaskCanceledException || ex is Exception)
+            {
+                _logger.LogError(ex, "[GeminiClient] Chunk failed or timed out for {Count} routes. Applying fallback.", chunk.Length);
+                foreach (var route in chunk)
+                {
+                    var key = $"{route.Origin}-{route.Destination}";
+                    // Fallback: Realistic default assigning $250 and 180m depending on the chunk failure
+                    chunkResults[key] = (180, 250);
+                }
+            }
 
-            _logger.LogInformation("[GeminiClient] Cached {Count}/{Total} flight estimates from Gemini batch",
-                _cache.Count, uncached.Count);
-        }
-        catch (JsonException ex)
+            return chunkResults;
+        });
+
+        var results = await Task.WhenAll(tasks);
+
+        foreach (var chunkResult in results)
         {
-            _logger.LogError(ex, "[GeminiClient] Failed to parse batch flight estimate response from Google AI");
-            throw new InvalidOperationException(
-                "Gemini AI returned an unparseable flight estimate response.", ex);
+            foreach (var kvp in chunkResult)
+            {
+                _cache[kvp.Key] = kvp.Value;
+            }
         }
+
+        _logger.LogInformation("[GeminiClient] Cached {Count}/{Total} flight estimates from Gemini batch",
+            _cache.Count, uncached.Count);
     }
 
     private static string StripMarkdownFences(string text)
