@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, Trash2, Copy, Check, ThumbsUp, ThumbsDown, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, Trash2, Copy, Check, ThumbsUp, ThumbsDown, RefreshCw } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { countryNames } from '../utils/countryMapper';
 import { clearShortlistVote, getGroupShortlist, runDecisionEngine, voteShortlistRoute } from '../api/routskyApi';
@@ -194,6 +194,13 @@ const GroupDashboard = ({ allGroups, selectedGroupId, onBack, deleteGroup }: any
         };
     };
 
+    const handleVoteToggle = (routeId: string, voteType: VoteType, currentVote?: VoteType) => {
+        if (currentVote === voteType) {
+            return handleClearVote(routeId);
+        }
+        return handleVote(routeId, voteType);
+    };
+
     const handleClearVote = async (routeId: string) => {
         if (!currentUser?.id || !selectedGroupId) return;
 
@@ -294,17 +301,18 @@ const GroupDashboard = ({ allGroups, selectedGroupId, onBack, deleteGroup }: any
                     {/* ═══ RIGHT COL: Engine + Results (compact) ═══ */}
                     <div className="lg:col-span-9 space-y-3">
                         {/* Shortlist Voting */}
-                        <div className="bg-white dark:bg-[#1E293B] border border-gray-200 dark:border-gray-800 p-3 rounded-xl">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider">
+                        <div className="bg-white dark:bg-slate-950/80 border border-gray-200 dark:border-white/5 p-4 rounded-xl shadow-sm dark:shadow-lg dark:shadow-black/20">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="font-bold text-gray-900 dark:text-white text-xs uppercase tracking-wider flex items-center gap-2">
+                                    <span className="w-1 h-4 bg-gradient-to-b from-indigo-400 to-indigo-600 rounded-full"></span>
                                     Route Shortlist Voting
                                 </h3>
                                 <div className="flex items-center gap-2">
-                                    {shortlistLoading && <span className="text-[10px] text-gray-400">Loading...</span>}
+                                    {shortlistLoading && <span className="text-[10px] text-gray-400 dark:text-slate-500">Loading...</span>}
                                     <button
                                         onClick={loadShortlist}
                                         disabled={shortlistLoading}
-                                        className="flex items-center gap-1 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1 text-[10px] font-semibold text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-300 disabled:opacity-60"
+                                        className="flex items-center gap-1 rounded-full border border-gray-200 dark:border-slate-700/70 bg-white dark:bg-slate-900/60 px-2.5 py-1 text-[10px] font-semibold text-gray-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-indigo-300 dark:hover:border-indigo-500/40 transition-colors disabled:opacity-60"
                                     >
                                         <RefreshCw size={11} className={shortlistLoading ? 'animate-spin' : ''} />
                                         Refresh
@@ -313,76 +321,80 @@ const GroupDashboard = ({ allGroups, selectedGroupId, onBack, deleteGroup }: any
                             </div>
 
                             {shortlistError && (
-                                <div className="mb-2 text-[11px] text-red-500 bg-red-50 dark:bg-red-900/20 p-1.5 rounded border border-red-200 dark:border-red-800/50">
+                                <div className="mb-3 text-[11px] text-red-600 dark:text-rose-300 bg-red-50 dark:bg-rose-950/40 p-2 rounded-lg border border-red-200 dark:border-rose-500/20">
                                     {shortlistError}
                                 </div>
                             )}
 
                             {!shortlistLoading && shortlist.length === 0 ? (
-                                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                                <p className="text-[11px] text-gray-500 dark:text-slate-400">
                                     No shortlisted routes yet. Add destinations to start group voting.
                                 </p>
                             ) : (
-                                <div className="space-y-2">
+                                <div className="space-y-2.5">
                                     {shortlist.map(route => {
                                         const candidate = findCandidateMeta(route.destinationId);
                                         const isUpvoted = route.currentUserVote === 'Upvote';
                                         const isDownvoted = route.currentUserVote === 'Downvote';
+                                        const isVoting = votingRouteId === route.id;
                                         const currency = candidate?.memberTickets?.[0]?.currency;
+
+                                        const upClasses = isUpvoted
+                                            ? 'bg-emerald-500 text-white ring-2 ring-emerald-400/50 shadow-md shadow-emerald-500/30 dark:shadow-emerald-500/40'
+                                            : 'bg-gray-100 dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 ring-1 ring-gray-200 dark:ring-slate-700/60 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/30';
+
+                                        const downClasses = isDownvoted
+                                            ? 'bg-rose-500 text-white ring-2 ring-rose-400/50 shadow-md shadow-rose-500/30 dark:shadow-rose-500/40'
+                                            : 'bg-gray-100 dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 ring-1 ring-gray-200 dark:ring-slate-700/60 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-300 dark:hover:ring-rose-500/30';
+
                                         return (
-                                            <div key={route.id} className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 p-2.5">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <div>
-                                                        <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
-                                                            {candidate?.city ? `${candidate.city} (${route.destinationId})` : route.destinationId}
+                                            <div
+                                                key={route.id}
+                                                className="group relative rounded-xl border border-gray-200 dark:border-white/5 bg-gradient-to-br from-gray-50 to-white dark:from-slate-900 dark:to-slate-950 p-4 ring-1 ring-gray-100 dark:ring-slate-800/50 shadow-sm dark:shadow-lg dark:shadow-black/30 transition-all hover:border-indigo-200 dark:hover:border-indigo-500/30 hover:ring-indigo-100 dark:hover:ring-indigo-500/20"
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
+                                                            {candidate?.city ? `${candidate.city}` : route.destinationId}
+                                                            <span className="ml-1.5 text-[10px] font-mono font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded">
+                                                                {route.destinationId}
+                                                            </span>
                                                         </div>
-                                                        <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                        <div className="mt-1 text-[11px] text-gray-500 dark:text-slate-400">
                                                             {candidate
                                                                 ? `${candidate.country} • ${getCurrencySymbol(currency)}${candidate.avgConvertedCost || candidate.avgCostUsd} • ${candidate.avgFlightTime}`
                                                                 : 'No recent engine data for this route.'}
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-1">
+                                                    <div className="flex items-center gap-1.5 shrink-0">
                                                         <button
-                                                            onClick={() => handleVote(route.id, 'Upvote')}
-                                                            disabled={votingRouteId === route.id}
-                                                            className={`flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold transition-colors ${
-                                                                isUpvoted
-                                                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                                                                    : 'bg-white text-gray-600 hover:text-emerald-600 dark:bg-gray-900/50 dark:text-gray-300'
-                                                            }`}
+                                                            onClick={() => handleVoteToggle(route.id, 'Upvote', route.currentUserVote)}
+                                                            disabled={isVoting}
+                                                            title={isUpvoted ? 'Click to clear your vote' : 'Upvote this route'}
+                                                            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed ${upClasses}`}
                                                         >
-                                                            <ThumbsUp size={12} /> {route.upvotes}
+                                                            <ThumbsUp size={13} className={isUpvoted ? 'fill-current' : ''} />
+                                                            <span className="tabular-nums">{route.upvotes}</span>
                                                         </button>
                                                         <button
-                                                            onClick={() => handleVote(route.id, 'Downvote')}
-                                                            disabled={votingRouteId === route.id}
-                                                            className={`flex items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold transition-colors ${
-                                                                isDownvoted
-                                                                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
-                                                                    : 'bg-white text-gray-600 hover:text-rose-600 dark:bg-gray-900/50 dark:text-gray-300'
-                                                            }`}
+                                                            onClick={() => handleVoteToggle(route.id, 'Downvote', route.currentUserVote)}
+                                                            disabled={isVoting}
+                                                            title={isDownvoted ? 'Click to clear your vote' : 'Downvote this route'}
+                                                            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed ${downClasses}`}
                                                         >
-                                                            <ThumbsDown size={12} /> {route.downvotes}
+                                                            <ThumbsDown size={13} className={isDownvoted ? 'fill-current' : ''} />
+                                                            <span className="tabular-nums">{route.downvotes}</span>
                                                         </button>
-                                                        {route.currentUserVote && (
-                                                            <button
-                                                                onClick={() => handleClearVote(route.id)}
-                                                                disabled={votingRouteId === route.id}
-                                                                className="flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-600 px-2 py-1 text-[10px] font-semibold text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white disabled:opacity-60"
-                                                                title="Clear my vote"
-                                                            >
-                                                                <X size={11} />
-                                                                Clear
-                                                            </button>
-                                                        )}
                                                     </div>
                                                 </div>
-                                                <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
-                                                    {candidate
-                                                        ? `AI reasoning: ${candidate.city} scored ${candidate.compositeScore}/100 with avg flight time ${candidate.avgFlightTime}.`
-                                                        : 'AI reasoning: No recent decision output available for this destination yet.'}
-                                                </p>
+                                                <div className="mt-3 pt-2.5 border-t border-gray-100 dark:border-white/5">
+                                                    <p className="text-[10px] text-gray-500 dark:text-slate-400 leading-relaxed">
+                                                        <span className="font-semibold text-gray-600 dark:text-slate-300">AI reasoning:</span>{' '}
+                                                        {candidate
+                                                            ? `${candidate.city} scored ${candidate.compositeScore}/100 with avg flight time ${candidate.avgFlightTime}.`
+                                                            : 'No recent decision output available for this destination yet.'}
+                                                    </p>
+                                                </div>
                                             </div>
                                         );
                                     })}
