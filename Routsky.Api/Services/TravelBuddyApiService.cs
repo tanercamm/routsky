@@ -304,7 +304,8 @@ public class TravelBuddyApiService
                 System.Text.Encoding.UTF8,
                 "application/json")
         };
-        request.Headers.Add("X-RapidAPI-Proxy-Secret", _apiKey);
+        request.Headers.Add("X-RapidAPI-Key", _apiKey);
+        request.Headers.Add("X-RapidAPI-Host", new Uri(_baseUrl).Host);
         return request;
     }
 

@@ -14,8 +14,12 @@ import {
   type CityPoint,
 } from '../data/globeData';
 
+/* ─────────────────────────────────────────────────────────────
+ *  CONSTANTS — used ONLY inside the globe branch
+ * ───────────────────────────────────────────────────────────── */
+
 const GLOBE_IMAGE = '//unpkg.com/three-globe/example/img/earth-night.jpg';
-const BUMP_IMAGE = '//unpkg.com/three-globe/example/img/earth-topology.png';
+const BUMP_IMAGE  = '//unpkg.com/three-globe/example/img/earth-topology.png';
 
 type ZoomTier = 'far' | 'mid' | 'close';
 
@@ -23,228 +27,30 @@ const STATIC_RINGS = SUPPORTED_CITIES
   .filter(c => c.tier === 1)
   .map(c => ({ ...c, maxR: 2.5, propagationSpeed: 1.5, repeatPeriod: 1800 }));
 
-const getPointColor = (d: object) => (d as CityPoint).isSupported ? '#007AFF' : 'rgba(100, 130, 170, 0.3)';
+const getPointColor  = (d: object) => (d as CityPoint).isSupported ? '#007AFF' : 'rgba(100, 130, 170, 0.3)';
 const getPointRadius = (d: object) => (d as CityPoint).isSupported ? 0.45 : 0.18;
-const getLabelColor = () => 'rgba(160, 170, 190, 0.18)';
-const getRingColor = () => (t: number) => `rgba(0, 122, 255, ${(1 - t) * 0.7})`;
+const getLabelColor  = () => 'rgba(160, 170, 190, 0.18)';
+const getRingColor   = () => (t: number) => `rgba(0, 122, 255, ${(1 - t) * 0.7})`;
 
-interface GlobeSceneProps {
+/* ─────────────────────────────────────────────────────────────
+ *  GlobeView — SELF-CONTAINED component for the 3D view.
+ *  ALL globe state (selected, zoomTier, globeRef) lives HERE
+ *  so it is destroyed on unmount — zero leaking possible.
+ * ───────────────────────────────────────────────────────────── */
+
+interface GlobeViewProps {
   width: number;
   height: number;
-  labelsData: CityPoint[];
-  onPointClick: (point: object | null) => void;
-  globeRef: React.MutableRefObject<GlobeMethods | undefined>;
   isLight: boolean;
 }
 
-const GlobeScene = memo(function GlobeScene({ width, height, labelsData, onPointClick, globeRef, isLight }: GlobeSceneProps) {
-  return (
-    <div className="absolute inset-0 z-10" style={{ pointerEvents: 'auto' }}>
-      <Globe
-        ref={globeRef}
-        width={width}
-        height={height}
-        globeImageUrl={GLOBE_IMAGE}
-        bumpImageUrl={BUMP_IMAGE}
-        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
-        atmosphereColor={isLight ? "#003399" : "#007AFF"}
-        atmosphereAltitude={isLight ? 0.28 : 0.16}
-        showAtmosphere={true}
-
-        pointsData={ALL_CITIES}
-        pointLat="lat"
-        pointLng="lng"
-        pointColor={getPointColor}
-        pointAltitude={0.01}
-        pointRadius={getPointRadius}
-        pointsMerge={false}
-        onPointClick={onPointClick}
-
-        labelsData={labelsData}
-        labelLat="lat"
-        labelLng="lng"
-        labelText="name"
-        labelSize={0.4}
-        labelDotRadius={0.15}
-        labelColor={getLabelColor}
-        labelResolution={2}
-        labelAltitude={0.005}
-        onLabelClick={onPointClick}
-
-        ringsData={STATIC_RINGS}
-        ringLat="lat"
-        ringLng="lng"
-        ringColor={getRingColor}
-        ringMaxRadius="maxR"
-        ringPropagationSpeed="propagationSpeed"
-        ringRepeatPeriod="repeatPeriod"
-
-        animateIn={true}
-      />
-    </div>
-  );
-});
-
-/* ─── Intelligence Card: rendered ONLY as a child of the globe view ─── */
-interface IntelCardProps {
-  selected: CityPoint;
-  onDismiss: () => void;
-  isLight: boolean;
-}
-
-function IntelligenceCard({ selected, onDismiss, isLight }: IntelCardProps) {
-  return (
-    <motion.div
-      key={selected.name}
-      initial={{ opacity: 0, y: 24, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 16, scale: 0.96 }}
-      transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-      className="fixed bottom-6 right-6 z-[9999] w-[320px]"
-    >
-      <div className={`transition-all duration-300 rounded-xl p-4 border ${isLight ? 'bg-white/80 border-gray-200 backdrop-blur-xl shadow-xl' : 'bg-[#0c1a30]/95 border-slate-700/60 backdrop-blur-xl'}`}>
-        {/* Header + Close */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isLight ? 'bg-[#007AFF]' : 'bg-blue-400/70'} animate-pulse shrink-0`} />
-              <h3 className={`text-sm font-black ${isLight ? 'text-blue-950' : 'text-white'} tracking-tight truncate`}>{selected.name}</h3>
-              {selected.isSupported && (
-                <span className={`text-[9px] font-black tracking-widest ${isLight ? 'bg-blue-500/10 text-blue-600 border-blue-200' : 'bg-blue-500/15 text-blue-300/80 border-blue-500/20'} px-2 py-0.5 rounded-md border uppercase shrink-0`}>
-                  Live
-                </span>
-              )}
-            </div>
-            <p className={`text-[10px] ${isLight ? 'text-blue-900/40' : 'text-gray-400'} ml-4 uppercase tracking-wider`}>{selected.country}</p>
-          </div>
-          <button
-            onClick={onDismiss}
-            className={`p-1 -m-1 rounded-lg transition-colors shrink-0 ml-2 ${isLight ? 'text-blue-900/30 hover:text-blue-900 hover:bg-blue-500/10' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
-            aria-label="Close intelligence card"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {selected.isSupported ? (
-          <div className="space-y-2">
-            <div className={`flex items-center justify-between rounded-lg px-3 py-2 ${isLight ? 'bg-blue-500/5' : 'bg-white/[0.03]'}`}>
-              <div className="flex items-center gap-2">
-                <Shield size={13} className={isLight ? 'text-[#007AFF]/60' : 'text-gray-500'} />
-                <span className={`text-[11px] ${isLight ? 'text-blue-900/60' : 'text-gray-400'}`}>Safety</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className={`h-1 w-16 rounded-full overflow-hidden ${isLight ? 'bg-gray-200' : 'bg-gray-800'}`}>
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${selected.safetyIndex}%`,
-                      backgroundColor: getSafetyColor(selected.safetyIndex),
-                    }}
-                  />
-                </div>
-                <span className="text-[11px] font-bold" style={{ color: getSafetyColor(selected.safetyIndex) }}>
-                  {getSafetyLabel(selected.safetyIndex)}
-                </span>
-              </div>
-            </div>
-
-            <div className={`flex items-center justify-between rounded-lg px-3 py-2 ${isLight ? 'bg-blue-500/5' : 'bg-white/[0.03]'}`}>
-              <div className="flex items-center gap-2">
-                <DollarSign size={13} className={isLight ? 'text-[#007AFF]/60' : 'text-gray-500'} />
-                <span className={`text-[11px] ${isLight ? 'text-blue-900/60' : 'text-gray-400'}`}>Avg Meal</span>
-              </div>
-              <span className="text-[11px] font-bold text-green-500">${selected.avgMealCost}</span>
-            </div>
-
-            <div className={`flex items-center justify-between rounded-lg px-3 py-2 ${isLight ? 'bg-blue-500/5' : 'bg-white/[0.03]'}`}>
-              <div className="flex items-center gap-2">
-                <Calendar size={13} className={isLight ? 'text-[#007AFF]/60' : 'text-gray-500'} />
-                <span className={`text-[11px] ${isLight ? 'text-blue-900/60' : 'text-gray-400'}`}>Best Months</span>
-              </div>
-              <span className={`text-[11px] font-bold ${isLight ? 'text-blue-900/80' : 'text-slate-400'}`}>{formatBestMonths(selected.bestMonths)}</span>
-            </div>
-
-            <div className="pt-1">
-              <div className="flex items-center justify-between mb-1">
-                <span className={`text-[10px] uppercase tracking-wider ${isLight ? 'text-blue-900/40' : 'text-gray-500'}`}>Cost of Living Index</span>
-                <span className={`text-[11px] font-bold ${isLight ? 'text-blue-900/80' : 'text-gray-300'}`}>{selected.costOfLivingIndex}/120</span>
-              </div>
-              <div className={`h-1.5 rounded-full overflow-hidden ${isLight ? 'bg-gray-200' : 'bg-gray-800'}`}>
-                <div
-                  className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full transition-all"
-                  style={{ width: `${Math.min((selected.costOfLivingIndex || 0) / 1.2, 100)}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-2">
-            <p className={`text-[11px] ${isLight ? 'text-blue-900/60' : 'text-gray-500'}`}>Capital city — not yet in Routsky network</p>
-            <p className={`text-[10px] mt-1 ${isLight ? 'text-blue-900/30' : 'text-gray-600'}`}>Coming soon to Mission Control</p>
-          </div>
-        )}
-
-        <div className={`mt-3 pt-2 border-t ${isLight ? 'border-blue-500/10' : 'border-white/[0.05]'}`}>
-          <div className="flex items-center justify-between">
-            <span className={`text-[9px] tracking-wider ${isLight ? 'text-blue-900/30' : 'text-gray-600'}`}>
-              {selected.lat.toFixed(2)}°{selected.lat >= 0 ? 'N' : 'S'}, {Math.abs(selected.lng).toFixed(2)}°{selected.lng >= 0 ? 'E' : 'W'}
-            </span>
-            <span className={`text-[9px] tracking-wider uppercase ${isLight ? 'text-[#007AFF]' : 'text-blue-500/40'}`}>Routsky Intel</span>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-export function HomePage() {
+const GlobeView = memo(function GlobeView({ width, height, isLight }: GlobeViewProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
-  const navigate = useNavigate();
   const [selected, setSelected] = useState<CityPoint | null>(null);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const [zoomTier, setZoomTier] = useState<ZoomTier>('far');
   const zoomTierRef = useRef<ZoomTier>('far');
-  const [intelView, setIntelView] = useState<'globe' | 'visa'>('globe');
 
-  /* ─── STRICT view switch: reset ALL 3D state when leaving globe ─── */
-  const switchView = useCallback((view: 'globe' | 'visa') => {
-    if (view !== 'globe') {
-      // Kill every piece of 3D-related state
-      setSelected(null);
-      setZoomTier('far');
-      zoomTierRef.current = 'far';
-      const controls = globeRef.current?.controls();
-      if (controls) controls.autoRotate = true;
-    }
-    setIntelView(view);
-  }, []);
-
-  useEffect(() => {
-    const update = () => {
-      if (containerRef.current) {
-        setDimensions({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight,
-        });
-      }
-    };
-    update();
-    let timer: ReturnType<typeof setTimeout>;
-    const debouncedUpdate = () => {
-      clearTimeout(timer);
-      timer = setTimeout(update, 200);
-    };
-    window.addEventListener('resize', debouncedUpdate);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', debouncedUpdate);
-    };
-  }, []);
-
+  // Globe controls setup
   useEffect(() => {
     if (!globeRef.current) return;
     const controls = globeRef.current.controls();
@@ -278,15 +84,15 @@ export function HomePage() {
       };
     }
     globeRef.current.pointOfView({ lat: 35, lng: 30, altitude: 2.2 }, 0);
-  }, [dimensions]);
+  }, [width, height]);
 
   const handlePointClick = useCallback((point: object | null) => {
-    if (!point || intelView !== 'globe') return;
+    if (!point) return;
     const city = point as CityPoint;
     const controls = globeRef.current?.controls();
     if (controls) controls.autoRotate = false;
     setSelected(city);
-  }, [intelView]);
+  }, []);
 
   const handleDismiss = useCallback(() => {
     setSelected(null);
@@ -300,12 +106,291 @@ export function HomePage() {
     return ALL_CITIES;
   }, [zoomTier]);
 
-  /* ═══════════════════════════════════════════════════════
-   *  RENDER — strict ternary: Globe branch vs Visa branch
-   *  The two views share ONLY the background layers and
-   *  the top-right toggle + CTA. Everything else is
-   *  exclusive to its own branch.
-   * ═══════════════════════════════════════════════════════ */
+  return (
+    <>
+      {/* Three.js canvas */}
+      <div className="absolute inset-0 z-10" style={{ pointerEvents: 'auto' }}>
+        <Globe
+          ref={globeRef}
+          width={width}
+          height={height}
+          globeImageUrl={GLOBE_IMAGE}
+          bumpImageUrl={BUMP_IMAGE}
+          backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+          atmosphereColor={isLight ? '#003399' : '#007AFF'}
+          atmosphereAltitude={isLight ? 0.28 : 0.16}
+          showAtmosphere
+
+          pointsData={ALL_CITIES}
+          pointLat="lat"
+          pointLng="lng"
+          pointColor={getPointColor}
+          pointAltitude={0.01}
+          pointRadius={getPointRadius}
+          pointsMerge={false}
+          onPointClick={handlePointClick}
+
+          labelsData={visibleLabels}
+          labelLat="lat"
+          labelLng="lng"
+          labelText="name"
+          labelSize={0.4}
+          labelDotRadius={0.15}
+          labelColor={getLabelColor}
+          labelResolution={2}
+          labelAltitude={0.005}
+          onLabelClick={handlePointClick}
+
+          ringsData={STATIC_RINGS}
+          ringLat="lat"
+          ringLng="lng"
+          ringColor={getRingColor}
+          ringMaxRadius="maxR"
+          ringPropagationSpeed="propagationSpeed"
+          ringRepeatPeriod="repeatPeriod"
+
+          animateIn
+        />
+      </div>
+
+      {/* Globe-only HUD */}
+      <div className="absolute top-6 left-6 z-20 pointer-events-none">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className={`w-1.5 h-1.5 rounded-full ${isLight ? 'bg-[#007AFF]' : 'bg-[#007AFF]/70'} animate-pulse`} />
+            <span className={`text-[9px] font-bold tracking-[0.2em] ${isLight ? 'text-gray-400' : 'text-slate-400'} uppercase transition-colors`}>
+              Routsky - Orchestrating the World
+            </span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-none transition-colors flex flex-wrap items-baseline gap-x-2">
+            <span className={isLight ? 'text-gray-400' : 'text-white/60'}>Global Route</span>
+            <span className="bg-gradient-to-r from-[#007AFF] to-[#007AFF]/80 bg-clip-text text-transparent">
+              Intelligence
+            </span>
+          </h1>
+          <p className={`text-xs ${isLight ? 'text-gray-500' : 'text-gray-500'} mt-2.5 max-w-[280px] leading-relaxed transition-colors`}>
+            Real-time agentic route analysis across {ALL_CITIES.length} global nodes.
+            Click any node for live intel.
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Globe-only: bottom-left stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+        className="absolute bottom-6 left-6 z-20 pointer-events-none"
+      >
+        <div className="flex gap-4">
+          {[
+            { label: 'ACTIVE NODES', value: ALL_CITIES.length.toString(), color: 'light:text-[#007AFF] dark:text-[#007AFF]/60' },
+            { label: 'COUNTRIES', value: new Set(ALL_CITIES.map(c => c.country)).size.toString(), color: 'light:text-blue-950 dark:text-slate-500' },
+            { label: 'REGIONS', value: '7', color: 'light:text-blue-950/60 dark:text-gray-500' },
+          ].map(s => (
+            <div key={s.label}
+              className="border transition-all duration-300 rounded-lg px-4 py-2.5 light:bg-white/70 light:backdrop-blur-md light:border-gray-200 light:shadow-sm dark:border-slate-800/80 dark:bg-[#0a1628]"
+            >
+              <div className={`text-xl font-black ${s.color} tabular-nums transition-colors`}>{s.value}</div>
+              <div className="text-[9px] font-bold tracking-[0.2em] light:text-gray-500 dark:text-gray-600 uppercase transition-colors">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Globe-only: Intelligence Card — local to this component, unmounted when GlobeView unmounts */}
+      <AnimatePresence>
+        {selected && (
+          <motion.div
+            key={selected.name}
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+            className="fixed bottom-6 right-6 z-[9999] w-[320px]"
+          >
+            <div className={`transition-all duration-300 rounded-xl p-4 border ${isLight ? 'bg-white/80 border-gray-200 backdrop-blur-xl shadow-xl' : 'bg-[#0c1a30]/95 border-slate-700/60 backdrop-blur-xl'}`}>
+              {/* Header + Close */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${isLight ? 'bg-[#007AFF]' : 'bg-blue-400/70'} animate-pulse shrink-0`} />
+                    <h3 className={`text-sm font-black ${isLight ? 'text-blue-950' : 'text-white'} tracking-tight truncate`}>{selected.name}</h3>
+                    {selected.isSupported && (
+                      <span className={`text-[9px] font-black tracking-widest ${isLight ? 'bg-blue-500/10 text-blue-600 border-blue-200' : 'bg-blue-500/15 text-blue-300/80 border-blue-500/20'} px-2 py-0.5 rounded-md border uppercase shrink-0`}>
+                        Live
+                      </span>
+                    )}
+                  </div>
+                  <p className={`text-[10px] ${isLight ? 'text-blue-900/40' : 'text-gray-400'} ml-4 uppercase tracking-wider`}>{selected.country}</p>
+                </div>
+                <button
+                  onClick={handleDismiss}
+                  className={`p-1 -m-1 rounded-lg transition-colors shrink-0 ml-2 ${isLight ? 'text-blue-900/30 hover:text-blue-900 hover:bg-blue-500/10' : 'text-gray-500 hover:text-white hover:bg-white/10'}`}
+                  aria-label="Close intelligence card"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {selected.isSupported ? (
+                <div className="space-y-2">
+                  <div className={`flex items-center justify-between rounded-lg px-3 py-2 ${isLight ? 'bg-blue-500/5' : 'bg-white/[0.03]'}`}>
+                    <div className="flex items-center gap-2">
+                      <Shield size={13} className={isLight ? 'text-[#007AFF]/60' : 'text-gray-500'} />
+                      <span className={`text-[11px] ${isLight ? 'text-blue-900/60' : 'text-gray-400'}`}>Safety</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`h-1 w-16 rounded-full overflow-hidden ${isLight ? 'bg-gray-200' : 'bg-gray-800'}`}>
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${selected.safetyIndex}%`,
+                            backgroundColor: getSafetyColor(selected.safetyIndex),
+                          }}
+                        />
+                      </div>
+                      <span className="text-[11px] font-bold" style={{ color: getSafetyColor(selected.safetyIndex) }}>
+                        {getSafetyLabel(selected.safetyIndex)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className={`flex items-center justify-between rounded-lg px-3 py-2 ${isLight ? 'bg-blue-500/5' : 'bg-white/[0.03]'}`}>
+                    <div className="flex items-center gap-2">
+                      <DollarSign size={13} className={isLight ? 'text-[#007AFF]/60' : 'text-gray-500'} />
+                      <span className={`text-[11px] ${isLight ? 'text-blue-900/60' : 'text-gray-400'}`}>Avg Meal</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-green-500">${selected.avgMealCost}</span>
+                  </div>
+
+                  <div className={`flex items-center justify-between rounded-lg px-3 py-2 ${isLight ? 'bg-blue-500/5' : 'bg-white/[0.03]'}`}>
+                    <div className="flex items-center gap-2">
+                      <Calendar size={13} className={isLight ? 'text-[#007AFF]/60' : 'text-gray-500'} />
+                      <span className={`text-[11px] ${isLight ? 'text-blue-900/60' : 'text-gray-400'}`}>Best Months</span>
+                    </div>
+                    <span className={`text-[11px] font-bold ${isLight ? 'text-blue-900/80' : 'text-slate-400'}`}>{formatBestMonths(selected.bestMonths)}</span>
+                  </div>
+
+                  <div className="pt-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-[10px] uppercase tracking-wider ${isLight ? 'text-blue-900/40' : 'text-gray-500'}`}>Cost of Living Index</span>
+                      <span className={`text-[11px] font-bold ${isLight ? 'text-blue-900/80' : 'text-gray-300'}`}>{selected.costOfLivingIndex}/120</span>
+                    </div>
+                    <div className={`h-1.5 rounded-full overflow-hidden ${isLight ? 'bg-gray-200' : 'bg-gray-800'}`}>
+                      <div
+                        className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full transition-all"
+                        style={{ width: `${Math.min((selected.costOfLivingIndex || 0) / 1.2, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-2">
+                  <p className={`text-[11px] ${isLight ? 'text-blue-900/60' : 'text-gray-500'}`}>Capital city — not yet in Routsky network</p>
+                  <p className={`text-[10px] mt-1 ${isLight ? 'text-blue-900/30' : 'text-gray-600'}`}>Coming soon to Mission Control</p>
+                </div>
+              )}
+
+              <div className={`mt-3 pt-2 border-t ${isLight ? 'border-blue-500/10' : 'border-white/[0.05]'}`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[9px] tracking-wider ${isLight ? 'text-blue-900/30' : 'text-gray-600'}`}>
+                    {selected.lat.toFixed(2)}°{selected.lat >= 0 ? 'N' : 'S'}, {Math.abs(selected.lng).toFixed(2)}°{selected.lng >= 0 ? 'E' : 'W'}
+                  </span>
+                  <span className={`text-[9px] tracking-wider uppercase ${isLight ? 'text-[#007AFF]' : 'text-blue-500/40'}`}>Routsky Intel</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+});
+
+/* ─────────────────────────────────────────────────────────────
+ *  VisaView — SELF-CONTAINED component for the 2D visa view.
+ *  Has ZERO references to globeData, CityPoint, safety, cost.
+ * ───────────────────────────────────────────────────────────── */
+
+interface VisaViewProps {
+  isLight: boolean;
+}
+
+function VisaView({ isLight }: VisaViewProps) {
+  return (
+    <>
+      <div className="absolute inset-0 z-10 px-4 pb-6 pt-24 sm:px-6 lg:px-8">
+        <VisaWorldMap />
+      </div>
+
+      {/* Visa-only HUD */}
+      <div className="absolute top-6 left-6 z-20 pointer-events-none">
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className={`w-1.5 h-1.5 rounded-full ${isLight ? 'bg-[#007AFF]' : 'bg-[#007AFF]/70'} animate-pulse`} />
+            <span className={`text-[9px] font-bold tracking-[0.2em] ${isLight ? 'text-gray-400' : 'text-slate-400'} uppercase transition-colors`}>
+              Routsky - Orchestrating the World
+            </span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-none transition-colors flex flex-wrap items-baseline gap-x-2">
+            <span className={isLight ? 'text-gray-400' : 'text-white/60'}>Visa</span>
+            <span className="bg-gradient-to-r from-[#007AFF] to-[#007AFF]/80 bg-clip-text text-transparent">
+              Intelligence
+            </span>
+          </h1>
+          <p className={`text-xs ${isLight ? 'text-gray-500' : 'text-gray-500'} mt-2.5 max-w-[280px] leading-relaxed transition-colors`}>
+            Live visa intelligence powered by RapidAPI. Hover any country for visa details.
+          </p>
+        </motion.div>
+      </div>
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ *  HomePage — the ONLY thing this component does is:
+ *  1) Manage the viewMode toggle
+ *  2) Measure the container size
+ *  3) Render EXACTLY ONE of GlobeView or VisaView
+ *
+ *  When viewMode changes, React unmounts the old component
+ *  and mounts the new one. The old component's entire subtree
+ *  (including the Three.js WebGL canvas, all DOM overlays, and
+ *  all React state like selected/zoomTier) is DESTROYED.
+ * ═══════════════════════════════════════════════════════════════ */
+
+export function HomePage() {
+  const navigate = useNavigate();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [viewMode, setViewMode] = useState<'3D' | '2D'>('3D');
+
+  // Measure container
+  useEffect(() => {
+    const update = () => {
+      if (containerRef.current) {
+        setDimensions({
+          width: containerRef.current.offsetWidth,
+          height: containerRef.current.offsetHeight,
+        });
+      }
+    };
+    update();
+    let timer: ReturnType<typeof setTimeout>;
+    const debouncedUpdate = () => {
+      clearTimeout(timer);
+      timer = setTimeout(update, 200);
+    };
+    window.addEventListener('resize', debouncedUpdate);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', debouncedUpdate);
+    };
+  }, []);
+
   return (
     <div ref={containerRef} className={`relative w-full h-[calc(100vh-4rem)] overflow-hidden transition-colors duration-700 ${isLight ? 'bg-[#F5F5F7]' : 'bg-[#020308]'}`}>
       {/* Shared background layers */}
@@ -317,108 +402,23 @@ export function HomePage() {
       />
       <div className={`absolute inset-0 pointer-events-none z-[1] ${isLight ? 'bg-[#F5F5F7]/20' : 'bg-[#050a18]/40'}`} />
 
-      {/* ════════════════════════════════════════════════════
-       *  VIEW CONTENT — strict ternary, true React unmounting
-       *  When visa is active, GlobeScene + IntelligenceCard
-       *  are PHYSICALLY REMOVED from the React tree.
-       * ════════════════════════════════════════════════════ */}
-      {intelView === 'globe' ? (
-        <>
-          {/* 3D Globe Canvas */}
-          {dimensions.width > 0 && (
-            <GlobeScene
-              globeRef={globeRef}
-              width={dimensions.width}
-              height={dimensions.height}
-              labelsData={visibleLabels}
-              onPointClick={handlePointClick}
-              isLight={isLight}
-            />
-          )}
-
-          {/* Globe-only HUD: top-left */}
-          <div className="absolute top-6 left-6 z-20 pointer-events-none">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className={`w-1.5 h-1.5 rounded-full ${isLight ? 'bg-[#007AFF]' : 'bg-[#007AFF]/70'} animate-pulse`} />
-                <span className={`text-[9px] font-bold tracking-[0.2em] ${isLight ? 'text-gray-400' : 'text-slate-400'} uppercase transition-colors`}>
-                  Routsky - Orchestrating the World
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-none transition-colors flex flex-wrap items-baseline gap-x-2">
-                <span className={isLight ? 'text-gray-400' : 'text-white/60'}>Global Route</span>
-                <span className="bg-gradient-to-r from-[#007AFF] to-[#007AFF]/80 bg-clip-text text-transparent">
-                  Intelligence
-                </span>
-              </h1>
-              <p className={`text-xs ${isLight ? 'text-gray-500' : 'text-gray-500'} mt-2.5 max-w-[280px] leading-relaxed transition-colors`}>
-                Real-time agentic route analysis across {ALL_CITIES.length} global nodes.
-                Click any node for live intel.
-              </p>
-            </motion.div>
-          </div>
-
-          {/* Globe-only: bottom-left stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="absolute bottom-6 left-6 z-20 pointer-events-none"
-          >
-            <div className="flex gap-4">
-              {[
-                { label: 'ACTIVE NODES', value: ALL_CITIES.length.toString(), color: 'light:text-[#007AFF] dark:text-[#007AFF]/60' },
-                { label: 'COUNTRIES', value: new Set(ALL_CITIES.map(c => c.country)).size.toString(), color: 'light:text-blue-950 dark:text-slate-500' },
-                { label: 'REGIONS', value: '7', color: 'light:text-blue-950/60 dark:text-gray-500' },
-              ].map(s => (
-                <div key={s.label}
-                  className="border transition-all duration-300 rounded-lg px-4 py-2.5 light:bg-white/70 light:backdrop-blur-md light:border-gray-200 light:shadow-sm dark:border-slate-800/80 dark:bg-[#0a1628]"
-                >
-                  <div className={`text-xl font-black ${s.color} tabular-nums transition-colors`}>{s.value}</div>
-                  <div className="text-[9px] font-bold tracking-[0.2em] light:text-gray-500 dark:text-gray-600 uppercase transition-colors">{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-
-          {/* Globe-only: Intelligence Card — NO portal, lives inside globe branch */}
-          <AnimatePresence>
-            {selected && (
-              <IntelligenceCard selected={selected} onDismiss={handleDismiss} isLight={isLight} />
-            )}
-          </AnimatePresence>
-        </>
+      {/* ═══════════════════════════════════════════════════════
+       *  STRICT TERNARY: Mount exactly one view at a time.
+       *  When viewMode flips, React PHYSICALLY REMOVES the old
+       *  component and ALL its children (canvas, overlays, state).
+       * ═══════════════════════════════════════════════════════ */}
+      {viewMode === '3D' ? (
+        <GlobeView
+          key="globe-view"
+          width={dimensions.width}
+          height={dimensions.height}
+          isLight={isLight}
+        />
       ) : (
-        <>
-          {/* ═══ 2D VISA VIEW — completely independent, zero globe artifacts ═══ */}
-          <div className="absolute inset-0 z-10 px-4 pb-6 pt-24 sm:px-6 lg:px-8">
-            <VisaWorldMap />
-          </div>
-
-          {/* Visa-only HUD: top-left */}
-          <div className="absolute top-6 left-6 z-20 pointer-events-none">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}>
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className={`w-1.5 h-1.5 rounded-full ${isLight ? 'bg-[#007AFF]' : 'bg-[#007AFF]/70'} animate-pulse`} />
-                <span className={`text-[9px] font-bold tracking-[0.2em] ${isLight ? 'text-gray-400' : 'text-slate-400'} uppercase transition-colors`}>
-                  Routsky - Orchestrating the World
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight leading-none transition-colors flex flex-wrap items-baseline gap-x-2">
-                <span className={isLight ? 'text-gray-400' : 'text-white/60'}>Visa</span>
-                <span className="bg-gradient-to-r from-[#007AFF] to-[#007AFF]/80 bg-clip-text text-transparent">
-                  Intelligence
-                </span>
-              </h1>
-              <p className={`text-xs ${isLight ? 'text-gray-500' : 'text-gray-500'} mt-2.5 max-w-[280px] leading-relaxed transition-colors`}>
-                Live visa intelligence powered by RapidAPI. Hover any country for visa details.
-              </p>
-            </motion.div>
-          </div>
-        </>
+        <VisaView key="visa-view" isLight={isLight} />
       )}
 
-      {/* ═══ SHARED UI: View toggle + system status + CTA ═══ */}
+      {/* ═══ SHARED: View toggle + system status (always visible) ═══ */}
       <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -428,14 +428,14 @@ export function HomePage() {
         <div className="space-y-3">
           <div className="pointer-events-auto inline-flex items-center rounded-xl border border-slate-700/70 bg-[#0a1628]/95 p-1 shadow-lg backdrop-blur">
             <button
-              className={`px-3 py-1.5 text-[10px] font-bold tracking-wide transition-colors ${intelView === 'globe' ? 'rounded-lg bg-[#007AFF] text-white' : 'text-gray-400 hover:text-gray-200'}`}
-              onClick={() => switchView('globe')}
+              className={`px-3 py-1.5 text-[10px] font-bold tracking-wide transition-colors ${viewMode === '3D' ? 'rounded-lg bg-[#007AFF] text-white' : 'text-gray-400 hover:text-gray-200'}`}
+              onClick={() => setViewMode('3D')}
             >
               3D Globe
             </button>
             <button
-              className={`px-3 py-1.5 text-[10px] font-bold tracking-wide transition-colors ${intelView === 'visa' ? 'rounded-lg bg-[#007AFF] text-white' : 'text-gray-400 hover:text-gray-200'}`}
-              onClick={() => switchView('visa')}
+              className={`px-3 py-1.5 text-[10px] font-bold tracking-wide transition-colors ${viewMode === '2D' ? 'rounded-lg bg-[#007AFF] text-white' : 'text-gray-400 hover:text-gray-200'}`}
+              onClick={() => setViewMode('2D')}
             >
               Visa Intel 2D
             </button>
@@ -451,8 +451,8 @@ export function HomePage() {
                 <div key={s} className="flex items-center justify-between">
                   <span className="text-[10px] light:text-gray-500 dark:text-gray-600 transition-colors">{s}</span>
                   <span className={`text-[10px] font-bold transition-colors ${
-                    isLight 
-                      ? 'text-[#001A33]' 
+                    isLight
+                      ? 'text-[#001A33]'
                       : (i < 3 ? 'text-blue-100/90' : 'text-blue-200/70')
                   }`}>
                     {i < 3 ? 'READY' : 'ACTIVE'}
