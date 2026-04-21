@@ -98,6 +98,15 @@ export function HomePage() {
   const zoomTierRef = useRef<ZoomTier>('far');
   const [intelView, setIntelView] = useState<'globe' | 'visa'>('globe');
 
+  const switchView = useCallback((view: 'globe' | 'visa') => {
+    if (view === 'visa') {
+      setSelected(null);
+      const controls = globeRef.current?.controls();
+      if (controls) controls.autoRotate = true;
+    }
+    setIntelView(view);
+  }, []);
+
   useEffect(() => {
     const update = () => {
       if (containerRef.current) {
@@ -220,34 +229,37 @@ export function HomePage() {
             </span>
           </h1>
           <p className={`text-xs ${isLight ? 'text-gray-500' : 'text-gray-500'} mt-2.5 max-w-[280px] leading-relaxed transition-colors`}>
-            Real-time agentic route analysis across {ALL_CITIES.length} global nodes.
-            Click any node for live intel.
+            {intelView === 'globe'
+              ? `Real-time agentic route analysis across ${ALL_CITIES.length} global nodes. Click any node for live intel.`
+              : 'Live visa intelligence powered by RapidAPI. Hover any country for visa details.'}
           </p>
         </motion.div>
       </div>
 
-      {/* Bottom-left stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="absolute bottom-6 left-6 z-20 pointer-events-none"
-      >
-        <div className="flex gap-4">
-          {[
-            { label: 'ACTIVE NODES', value: ALL_CITIES.length.toString(), color: 'light:text-[#007AFF] dark:text-[#007AFF]/60' },
-            { label: 'COUNTRIES', value: new Set(ALL_CITIES.map(c => c.country)).size.toString(), color: 'light:text-blue-950 dark:text-slate-500' },
-            { label: 'REGIONS', value: '7', color: 'light:text-blue-950/60 dark:text-gray-500' },
-          ].map(s => (
-            <div key={s.label}
-              className="border transition-all duration-300 rounded-lg px-4 py-2.5 light:bg-white/70 light:backdrop-blur-md light:border-gray-200 light:shadow-sm dark:border-slate-800/80 dark:bg-[#0a1628]"
-            >
-              <div className={`text-xl font-black ${s.color} tabular-nums transition-colors`}>{s.value}</div>
-              <div className="text-[9px] font-bold tracking-[0.2em] light:text-gray-500 dark:text-gray-600 uppercase transition-colors">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
+      {/* Bottom-left stats — globe view only */}
+      {intelView === 'globe' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className="absolute bottom-6 left-6 z-20 pointer-events-none"
+        >
+          <div className="flex gap-4">
+            {[
+              { label: 'ACTIVE NODES', value: ALL_CITIES.length.toString(), color: 'light:text-[#007AFF] dark:text-[#007AFF]/60' },
+              { label: 'COUNTRIES', value: new Set(ALL_CITIES.map(c => c.country)).size.toString(), color: 'light:text-blue-950 dark:text-slate-500' },
+              { label: 'REGIONS', value: '7', color: 'light:text-blue-950/60 dark:text-gray-500' },
+            ].map(s => (
+              <div key={s.label}
+                className="border transition-all duration-300 rounded-lg px-4 py-2.5 light:bg-white/70 light:backdrop-blur-md light:border-gray-200 light:shadow-sm dark:border-slate-800/80 dark:bg-[#0a1628]"
+              >
+                <div className={`text-xl font-black ${s.color} tabular-nums transition-colors`}>{s.value}</div>
+                <div className="text-[9px] font-bold tracking-[0.2em] light:text-gray-500 dark:text-gray-600 uppercase transition-colors">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Top-right mode + network status */}
       <motion.div
@@ -260,13 +272,13 @@ export function HomePage() {
           <div className="pointer-events-auto inline-flex items-center rounded-xl border border-slate-700/70 bg-[#0a1628]/95 p-1 shadow-lg backdrop-blur">
             <button
               className={`px-3 py-1.5 text-[10px] font-bold tracking-wide transition-colors ${intelView === 'globe' ? 'rounded-lg bg-[#007AFF] text-white' : 'text-gray-400 hover:text-gray-200'}`}
-              onClick={() => setIntelView('globe')}
+              onClick={() => switchView('globe')}
             >
               3D Globe
             </button>
             <button
               className={`px-3 py-1.5 text-[10px] font-bold tracking-wide transition-colors ${intelView === 'visa' ? 'rounded-lg bg-[#007AFF] text-white' : 'text-gray-400 hover:text-gray-200'}`}
-              onClick={() => setIntelView('visa')}
+              onClick={() => switchView('visa')}
             >
               Visa Intel 2D
             </button>
@@ -328,8 +340,8 @@ export function HomePage() {
       {/* Mobile bottom fade */}
       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#050a18] to-transparent pointer-events-none z-10 sm:hidden" />
 
-      {/* Intelligence Card — portal so Three.js canvas keeps running */}
-      {createPortal(
+      {/* Intelligence Card — portal, only rendered during globe view */}
+      {intelView === 'globe' && createPortal(
         <AnimatePresence>
           {selected && (
             <motion.div

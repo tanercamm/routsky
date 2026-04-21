@@ -178,13 +178,26 @@ export function VisaWorldMap() {
         </div>
       )}
 
-      <div className="mt-4 grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-3 lg:grid-cols-6">
-        {(Object.keys(STATUS_COLORS) as VisaMapStatus[]).map(status => (
-          <div key={status} className="flex items-center gap-2 text-gray-300">
-            <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: STATUS_COLORS[status] }} />
-            <span>{STATUS_LABELS[status]}</span>
-          </div>
-        ))}
+      {/* Visa Legend */}
+      <div className="mt-5 rounded-xl border border-slate-700/60 bg-[#071124]/80 p-3">
+        <h4 className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+          Visa Legend
+        </h4>
+        <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-3 lg:grid-cols-6">
+          {(Object.keys(STATUS_COLORS) as VisaMapStatus[]).map(status => (
+            <div
+              key={status}
+              className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors"
+              style={{ borderColor: `${STATUS_COLORS[status]}40`, backgroundColor: `${STATUS_COLORS[status]}08` }}
+            >
+              <span
+                className="inline-block h-3 w-3 shrink-0 rounded-full shadow-sm"
+                style={{ backgroundColor: STATUS_COLORS[status], boxShadow: `0 0 6px ${STATUS_COLORS[status]}60` }}
+              />
+              <span className="text-gray-200 font-medium leading-tight">{STATUS_LABELS[status]}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

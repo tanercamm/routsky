@@ -340,12 +340,12 @@ const GroupDashboard = ({ allGroups, selectedGroupId, onBack, deleteGroup }: any
                                         const currency = candidate?.memberTickets?.[0]?.currency;
 
                                         const upClasses = isUpvoted
-                                            ? 'bg-emerald-500 text-white ring-2 ring-emerald-400/50 shadow-md shadow-emerald-500/30 dark:shadow-emerald-500/40'
-                                            : 'bg-gray-100 dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 ring-1 ring-gray-200 dark:ring-slate-700/60 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/30';
+                                            ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white ring-2 ring-emerald-400/50 shadow-lg shadow-emerald-500/40 dark:shadow-emerald-500/50 scale-105'
+                                            : 'bg-gray-100 dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 ring-1 ring-gray-200 dark:ring-slate-700/60 hover:bg-emerald-50 hover:text-emerald-600 hover:ring-emerald-300 hover:scale-105 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-300 dark:hover:ring-emerald-500/30';
 
                                         const downClasses = isDownvoted
-                                            ? 'bg-rose-500 text-white ring-2 ring-rose-400/50 shadow-md shadow-rose-500/30 dark:shadow-rose-500/40'
-                                            : 'bg-gray-100 dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 ring-1 ring-gray-200 dark:ring-slate-700/60 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-300 dark:hover:ring-rose-500/30';
+                                            ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white ring-2 ring-rose-400/50 shadow-lg shadow-rose-500/40 dark:shadow-rose-500/50 scale-105'
+                                            : 'bg-gray-100 dark:bg-slate-800/60 text-gray-500 dark:text-slate-400 ring-1 ring-gray-200 dark:ring-slate-700/60 hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-300 hover:scale-105 dark:hover:bg-rose-500/10 dark:hover:text-rose-300 dark:hover:ring-rose-500/30';
 
                                         return (
                                             <div
@@ -371,7 +371,7 @@ const GroupDashboard = ({ allGroups, selectedGroupId, onBack, deleteGroup }: any
                                                             onClick={() => handleVoteToggle(route.id, 'Upvote', route.currentUserVote)}
                                                             disabled={isVoting}
                                                             title={isUpvoted ? 'Click to clear your vote' : 'Upvote this route'}
-                                                            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed ${upClasses}`}
+                                                            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${upClasses}`}
                                                         >
                                                             <ThumbsUp size={13} className={isUpvoted ? 'fill-current' : ''} />
                                                             <span className="tabular-nums">{route.upvotes}</span>
@@ -380,7 +380,7 @@ const GroupDashboard = ({ allGroups, selectedGroupId, onBack, deleteGroup }: any
                                                             onClick={() => handleVoteToggle(route.id, 'Downvote', route.currentUserVote)}
                                                             disabled={isVoting}
                                                             title={isDownvoted ? 'Click to clear your vote' : 'Downvote this route'}
-                                                            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed ${downClasses}`}
+                                                            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${downClasses}`}
                                                         >
                                                             <ThumbsDown size={13} className={isDownvoted ? 'fill-current' : ''} />
                                                             <span className="tabular-nums">{route.downvotes}</span>
