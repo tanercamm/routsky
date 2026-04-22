@@ -67,6 +67,9 @@ public class TravelBuddyApiService
         // ═══════════════════════════════════════════════════════════════════
         var attempts = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
+            // Render double-underscore variant (confirmed in production logs)
+            ["ENV:TRAVELBUDDY__RAPIDAPI__KEY"] =
+                Environment.GetEnvironmentVariable("TRAVELBUDDY__RAPIDAPI__KEY"),
             // OS-level env var (exact casing)
             ["ENV:TRAVELBUDDY_RAPIDAPI_KEY"] =
                 Environment.GetEnvironmentVariable("TRAVELBUDDY_RAPIDAPI_KEY"),
@@ -111,7 +114,8 @@ public class TravelBuddyApiService
                 foreach (System.Collections.DictionaryEntry entry in Environment.GetEnvironmentVariables())
                 {
                     var key = entry.Key?.ToString() ?? "";
-                    if (key.Equals("TRAVELBUDDY_RAPIDAPI_KEY", StringComparison.OrdinalIgnoreCase))
+                    if (key.Equals("TRAVELBUDDY_RAPIDAPI_KEY", StringComparison.OrdinalIgnoreCase) ||
+                        key.Equals("TRAVELBUDDY__RAPIDAPI__KEY", StringComparison.OrdinalIgnoreCase))
                     {
                         _apiKey = entry.Value?.ToString() ?? "";
                         _logger.LogWarning(
