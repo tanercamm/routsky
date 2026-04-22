@@ -20,7 +20,7 @@ export const Navbar = () => {
 
     return (
         <header className="sticky top-0 z-30 transition-all duration-300 backdrop-blur-xl border-b light:border-gray-200 light:bg-[#F5F5F7]/80 dark:border-white/[0.06] dark:bg-[#050a18]/80">
-            <div className="max-w-[1600px] w-[96%] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div className="max-w-[1600px] w-[96%] mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
 
                 {/* Left: Logo */}
                 <div className="flex-1 flex items-center justify-start gap-3">

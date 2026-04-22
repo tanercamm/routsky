@@ -109,7 +109,7 @@ function flagEmoji(code: string): string {
 /** Inline loader used while waiting on auth hydration, GeoJSON, or the visa API. */
 function LoadingShell({ label }: { label: string }) {
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden">
+    <div className="flex h-full w-full flex-col gap-2 overflow-hidden">
       <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-slate-800/80 bg-[#0a1628] shadow-2xl">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#007AFF]/30 border-t-[#007AFF]" />
@@ -309,50 +309,57 @@ export function VisaWorldMap() {
   }
 
   return (
-    <div className="flex h-full w-full flex-col gap-3 overflow-hidden">
+    <div className="flex h-full w-full flex-col gap-2 overflow-hidden">
 
-      {/* Header row */}
-      <div className="flex shrink-0 items-center justify-between px-1">
-        <div>
-          <h3 className="text-sm font-black tracking-wide text-white">Visa Intel 2D</h3>
-          <p className="text-[11px] text-gray-400">
-            Passport:{' '}
-            <span className="font-semibold text-blue-300">
-              {flagEmoji(passportCode)} {passportCode}
+      {/* Compact single-line header */}
+      <div className="flex shrink-0 items-center justify-between px-1 py-0.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-black tracking-wide text-white whitespace-nowrap">Visa Intelligence</span>
+          <span className="text-slate-700 select-none">|</span>
+          <span className="text-[11px] font-semibold text-blue-300 whitespace-nowrap">
+            {flagEmoji(passportCode)} {passportCode}
+          </span>
+          {Object.keys(visaMap).length > 0 && (
+            <span className="text-[10px] text-gray-500 whitespace-nowrap">
+              · {Object.keys(visaMap).length} countries
             </span>
-            <span className="ml-2 text-gray-500">
-              · {Object.keys(visaMap).length} countries classified
-            </span>
-          </p>
+          )}
         </div>
-        {busy && <span className="text-[11px] text-blue-300">Loading visa intel...</span>}
+        {busy && (
+          <span className="text-[10px] text-blue-400 animate-pulse whitespace-nowrap ml-2">
+            Syncing...
+          </span>
+        )}
       </div>
 
-      {error && (
-        <div className="flex shrink-0 items-center justify-between gap-3 rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300">
-          <span>{error}</span>
-          <button
-            onClick={() => setReloadKey(k => k + 1)}
-            className="shrink-0 rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-red-200 hover:bg-red-500/20"
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {showEmptyDataBanner && (
-        <div className="shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-          No visa data returned for <span className="font-bold">{passportCode}</span>. Check the
-          RapidAPI key on the server (<code className="text-amber-100">TRAVELBUDDY_RAPIDAPI_KEY</code>).
-        </div>
-      )}
-
       {/* Map fills remaining space. `min-h-0` lets it shrink so the legend below
-          is never pushed out of the viewport. */}
+          is never pushed out of the viewport. Error/empty banners float inside
+          the map as toasts so they never affect the layout. */}
       <div
         ref={containerRef}
         className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-800/80 bg-[#0a1628] shadow-2xl"
       >
+        {/* Floating error toast — absolute so it never pushes the map */}
+        {error && (
+          <div className="pointer-events-auto absolute left-3 top-3 z-20 flex max-w-xs items-center gap-2 rounded-lg border border-red-500/40 bg-[#0a1628]/95 px-3 py-1.5 text-xs text-red-300 shadow-xl backdrop-blur-sm">
+            <span className="flex-1 truncate">{error}</span>
+            <button
+              onClick={() => setReloadKey(k => k + 1)}
+              className="shrink-0 font-bold text-red-200 hover:text-white transition-colors"
+              title="Retry"
+            >
+              ↻
+            </button>
+          </div>
+        )}
+
+        {/* Floating empty-data toast */}
+        {showEmptyDataBanner && (
+          <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-xs rounded-lg border border-amber-500/40 bg-[#0a1628]/95 px-3 py-1.5 text-xs text-amber-300 shadow-xl backdrop-blur-sm">
+            No visa data for <span className="font-bold">{passportCode}</span> — check{' '}
+            <code className="text-amber-200">TRAVELBUDDY_RAPIDAPI_KEY</code>
+          </div>
+        )}
         <svg
           viewBox={`0 0 ${size.width} ${size.height}`}
           preserveAspectRatio="xMidYMid meet"
@@ -513,45 +520,29 @@ export function VisaWorldMap() {
         </div>
       )}
 
-      {/* Legend */}
-      <div className="shrink-0 rounded-xl border border-slate-700/60 bg-[#071124]/80 p-3">
-        <h4 className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
-          Visa Legend
-        </h4>
-        <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-3 lg:grid-cols-7">
-          <div
-            className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5"
-            style={{
-              borderColor: `${HOME_FILL}60`,
-              backgroundColor: `${HOME_FILL}15`,
-            }}
-          >
+      {/* Compact legend — single flex-wrap row */}
+      <div className="shrink-0 rounded-xl border border-slate-700/60 bg-[#071124]/80 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500 whitespace-nowrap">
+            Legend
+          </span>
+          <div className="flex items-center gap-1.5">
             <span
-              className="inline-block h-3 w-3 shrink-0 rounded-full"
-              style={{
-                backgroundColor: HOME_FILL,
-                boxShadow: `0 0 8px ${HOME_FILL}`,
-              }}
+              className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: HOME_FILL, boxShadow: `0 0 6px ${HOME_FILL}` }}
             />
-            <span className="font-medium leading-tight text-gray-200">Home</span>
+            <span className="text-[10px] font-medium text-gray-300">Home</span>
           </div>
           {(Object.keys(STATUS_COLORS) as VisaMapStatus[]).map(status => (
-            <div
-              key={status}
-              className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5"
-              style={{
-                borderColor: `${STATUS_COLORS[status]}40`,
-                backgroundColor: `${STATUS_COLORS[status]}10`,
-              }}
-            >
+            <div key={status} className="flex items-center gap-1.5">
               <span
-                className="inline-block h-3 w-3 shrink-0 rounded-full"
+                className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{
                   backgroundColor: STATUS_COLORS[status],
-                  boxShadow: `0 0 6px ${STATUS_COLORS[status]}60`,
+                  boxShadow: `0 0 4px ${STATUS_COLORS[status]}60`,
                 }}
               />
-              <span className="font-medium leading-tight text-gray-200">
+              <span className="text-[10px] font-medium text-gray-300 whitespace-nowrap">
                 {STATUS_LABELS[status]}
               </span>
             </div>
