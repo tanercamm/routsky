@@ -146,7 +146,6 @@ export function VisaWorldMap() {
   }, [passports, passportCode]);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ width: 1000, height: 520 });
   const [worldFeatures, setWorldFeatures] = useState<CountryFeature[]>([]);
   const [visaMap, setVisaMap] = useState<Record<string, GlobalVisaCountryStatus>>({});
   const [loading, setLoading] = useState(true);
@@ -154,19 +153,9 @@ export function VisaWorldMap() {
   const [error, setError] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
-  // ── Measure the map container so the SVG fills the available space ──
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(entries => {
-      const rect = entries[0].contentRect;
-      const width = Math.max(640, Math.floor(rect.width));
-      const height = Math.max(360, Math.floor(rect.height));
-      setSize({ width, height });
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+  /** Fixed SVG coordinate space — the viewBox never changes. */
+  const SVG_W = 800;
+  const SVG_H = 500;
 
   // ── Load GeoJSON (re-runnable via reloadKey) ──
   useEffect(() => {
@@ -235,13 +224,13 @@ export function VisaWorldMap() {
     };
   }, [passportCode, reloadKey]);
 
-  // ── Projection + path are recomputed when the container resizes ──
+  // ── Fixed projection — scale + translate tuned for 800×500 viewBox ──
   const projection = useMemo(
     () =>
       geoNaturalEarth1()
-        .translate([size.width / 2, size.height / 2])
-        .scale(size.width / 6.2),
-    [size.height, size.width],
+        .scale(150)
+        .translate([SVG_W / 2, SVG_H / 2]),
+    [],
   );
   const path = useMemo(() => geoPath(projection), [projection]);
 
@@ -361,7 +350,7 @@ export function VisaWorldMap() {
           </div>
         )}
         <svg
-          viewBox={`0 0 ${size.width} ${size.height}`}
+          viewBox={`0 0 ${SVG_W} ${SVG_H}`}
           preserveAspectRatio="xMidYMid meet"
           className="absolute inset-0 h-full w-full"
         >
@@ -375,7 +364,7 @@ export function VisaWorldMap() {
               </feMerge>
             </filter>
           </defs>
-          <rect x={0} y={0} width={size.width} height={size.height} fill="#071124" />
+          <rect x={0} y={0} width={SVG_W} height={SVG_H} fill="#071124" />
           <g>
             {orderedFeatures.map(feature => {
               const d = path(feature);
