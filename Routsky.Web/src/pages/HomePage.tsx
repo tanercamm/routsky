@@ -409,19 +409,21 @@ export function HomePage() {
 
       {/* ═══════════════════════════════════════════════════════
        *  STRICT TERNARY: Mount exactly one view at a time.
-       *  When viewMode flips, React PHYSICALLY REMOVES the old
-       *  component and ALL its children (canvas, overlays, state).
+       *  The outer <div key={viewMode}> is the SINGLE source of
+       *  truth for remount — when viewMode flips, React destroys
+       *  the entire subtree (canvas, overlays, portals, state).
        * ═══════════════════════════════════════════════════════ */}
-      {viewMode === '3D' ? (
-        <GlobeView
-          key="globe-view"
-          width={dimensions.width}
-          height={dimensions.height}
-          isLight={isLight}
-        />
-      ) : (
-        <VisaView key="visa-view" isLight={isLight} />
-      )}
+      <div key={viewMode} className="absolute inset-0">
+        {viewMode === '3D' ? (
+          <GlobeView
+            width={dimensions.width}
+            height={dimensions.height}
+            isLight={isLight}
+          />
+        ) : (
+          <VisaView isLight={isLight} />
+        )}
+      </div>
 
       {/* ═══ SHARED: View toggle + system status (always visible) ═══ */}
       <motion.div
