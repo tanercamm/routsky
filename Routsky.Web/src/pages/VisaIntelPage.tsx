@@ -152,7 +152,7 @@ export function VisaIntelPage() {
       {/* ══════════════════════════════════════════════
           LEFT SIDEBAR
           ══════════════════════════════════════════════ */}
-      <aside className="flex w-80 shrink-0 flex-col gap-5 overflow-y-auto border-r border-slate-800/60 bg-slate-900/50 p-5 backdrop-blur-sm">
+      <aside className="flex w-[420px] shrink-0 flex-col gap-5 overflow-y-auto border-r border-slate-800/60 bg-[#071124]/50 p-6 backdrop-blur-sm">
 
         {/* ── Title + sync indicator ── */}
         <div className="flex items-center gap-3">

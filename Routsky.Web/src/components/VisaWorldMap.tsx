@@ -115,11 +115,18 @@ export interface VisaWorldMapProps {
 
 /**
  * Fixed SVG coordinate space.
- * Using 800×450 (16:9-ish) fills the viewport more aggressively
- * than 800×500, reducing dead space on the sides.
+ * 960×490 closely matches the Natural Earth projection's natural ~2:1
+ * aspect ratio, eliminating horizontal pillarboxing.
  */
-const SVG_W = 800;
-const SVG_H = 450;
+const SVG_W = 960;
+const SVG_H = 490;
+
+/** Inset the viewBox to crop the transparent margins the projection leaves. */
+const VB_INSET = 15;
+const VB_X = VB_INSET;
+const VB_Y = 5;
+const VB_W = SVG_W - VB_INSET * 2;
+const VB_H = SVG_H - 10;
 
 export function VisaWorldMap({
   passportCode,
@@ -188,7 +195,7 @@ export function VisaWorldMap({
 
     const zoomBehavior = d3Zoom<SVGSVGElement, unknown>()
       .scaleExtent([1, 8])
-      .translateExtent([[0, 0], [SVG_W, SVG_H]])
+      .translateExtent([[-VB_INSET, -VB_Y], [SVG_W + VB_INSET, SVG_H + VB_Y]])
       .on('start', () => setIsPanning(true))
       .on('zoom', (event) => {
         const { x, y, k } = event.transform;
@@ -263,7 +270,7 @@ export function VisaWorldMap({
 
   return (
     <div
-      className={`relative h-full w-full overflow-hidden rounded-2xl border border-slate-800/80 bg-[#0a1628] shadow-2xl ${
+      className={`relative h-full w-full overflow-hidden rounded-2xl border border-slate-800/80 bg-[#071124] shadow-2xl ${
         isPanning ? 'cursor-grabbing' : 'cursor-grab'
       }`}
     >
@@ -271,7 +278,7 @@ export function VisaWorldMap({
         ref={svgRef}
         width="100%"
         height="100%"
-        viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+        viewBox={`${VB_X} ${VB_Y} ${VB_W} ${VB_H}`}
         preserveAspectRatio="xMidYMid meet"
         className="absolute inset-0"
       >
