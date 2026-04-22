@@ -30,17 +30,37 @@ public class TravelBuddyApiService
         _logger = logger;
 
         _baseUrl = configuration["TravelBuddy:BaseUrl"] ?? "https://visa-requirement.p.rapidapi.com";
-        var envVar = configuration["TravelBuddy:ApiKeyEnvVar"] ?? "TRAVELBUDDY_RAPIDAPI_KEY";
-        _apiKey = Environment.GetEnvironmentVariable(envVar)
-                  ?? configuration[$"TravelBuddy:ApiKey"]
-                  ?? "";
+
+        // Aggressive key resolution — every source we've ever used, in priority order.
+        // 1) Flat config key (env var exposed via EnvironmentVariables provider)
+        // 2) Direct Environment.GetEnvironmentVariable (covers non-provider hosts)
+        // 3) Section-style override (TravelBuddy:ApiKey in appsettings)
+        // 4) Custom env-var name via TravelBuddy:ApiKeyEnvVar (legacy path)
+        var fromConfigFlat = configuration["TRAVELBUDDY_RAPIDAPI_KEY"];
+        var fromEnvDirect = Environment.GetEnvironmentVariable("TRAVELBUDDY_RAPIDAPI_KEY");
+        var fromConfigSection = configuration["TravelBuddy:ApiKey"];
+        var customEnvVarName = configuration["TravelBuddy:ApiKeyEnvVar"];
+        var fromCustomEnv = !string.IsNullOrWhiteSpace(customEnvVarName)
+            ? Environment.GetEnvironmentVariable(customEnvVarName)
+            : null;
+
+        _apiKey =
+            FirstNonEmpty(fromConfigFlat, fromEnvDirect, fromConfigSection, fromCustomEnv)
+            ?? string.Empty;
+
+        string source =
+            !string.IsNullOrWhiteSpace(fromConfigFlat)    ? "configuration[\"TRAVELBUDDY_RAPIDAPI_KEY\"]" :
+            !string.IsNullOrWhiteSpace(fromEnvDirect)     ? "Environment.GetEnvironmentVariable(\"TRAVELBUDDY_RAPIDAPI_KEY\")" :
+            !string.IsNullOrWhiteSpace(fromConfigSection) ? "configuration[\"TravelBuddy:ApiKey\"]" :
+            !string.IsNullOrWhiteSpace(fromCustomEnv)     ? $"Environment.GetEnvironmentVariable(\"{customEnvVarName}\")" :
+                                                            "<none>";
 
         if (string.IsNullOrWhiteSpace(_apiKey))
         {
             _logger.LogError(
-                "[TravelBuddy] RapidAPI key NOT configured. Set env var '{EnvVar}' (or config 'TravelBuddy:ApiKey'). " +
-                "All visa lookups will return 'Unknown' until this is fixed.",
-                envVar);
+                "[TravelBuddy] RapidAPI key NOT configured. Checked: configuration[\"TRAVELBUDDY_RAPIDAPI_KEY\"], " +
+                "Environment.GetEnvironmentVariable(\"TRAVELBUDDY_RAPIDAPI_KEY\"), configuration[\"TravelBuddy:ApiKey\"]. " +
+                "All visa lookups will return 'Unknown' until this is fixed.");
         }
         else
         {
@@ -48,9 +68,18 @@ public class TravelBuddyApiService
                 ? new string('*', _apiKey.Length)
                 : $"{_apiKey[..4]}...{_apiKey[^4..]}";
             _logger.LogInformation(
-                "[TravelBuddy] RapidAPI configured. Host={Host}, Key={MaskedKey}",
-                new Uri(_baseUrl).Host, masked);
+                "[TravelBuddy] RapidAPI configured. Host={Host}, Key={MaskedKey}, Source={Source}",
+                new Uri(_baseUrl).Host, masked, source);
         }
+    }
+
+    private static string? FirstNonEmpty(params string?[] values)
+    {
+        foreach (var v in values)
+        {
+            if (!string.IsNullOrWhiteSpace(v)) return v;
+        }
+        return null;
     }
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(_apiKey);

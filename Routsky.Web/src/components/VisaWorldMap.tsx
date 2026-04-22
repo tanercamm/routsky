@@ -109,14 +109,8 @@ function flagEmoji(code: string): string {
 /** Inline loader used while waiting on auth hydration, GeoJSON, or the visa API. */
 function LoadingShell({ label }: { label: string }) {
   return (
-    <div
-      className="flex h-full w-full flex-col"
-      style={{ minHeight: '80vh' }}
-    >
-      <div
-        className="relative flex flex-1 items-center justify-center overflow-hidden rounded-2xl border border-slate-800/80 bg-[#0a1628] shadow-2xl"
-        style={{ minHeight: '600px' }}
-      >
+    <div className="flex h-full w-full flex-col overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-slate-800/80 bg-[#0a1628] shadow-2xl">
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#007AFF]/30 border-t-[#007AFF]" />
           <div className="text-sm font-semibold tracking-wide text-blue-200">{label}</div>
@@ -315,10 +309,7 @@ export function VisaWorldMap() {
   }
 
   return (
-    <div
-      className="flex h-full w-full flex-col gap-3"
-      style={{ minHeight: '80vh' }}
-    >
+    <div className="flex h-full w-full flex-col gap-3 overflow-hidden">
 
       {/* Header row */}
       <div className="flex shrink-0 items-center justify-between px-1">
@@ -356,11 +347,11 @@ export function VisaWorldMap() {
         </div>
       )}
 
-      {/* Map fills remaining space — explicit minHeight so the SVG never collapses to 0 */}
+      {/* Map fills remaining space. `min-h-0` lets it shrink so the legend below
+          is never pushed out of the viewport. */}
       <div
         ref={containerRef}
-        className="relative flex-1 overflow-hidden rounded-2xl border border-slate-800/80 bg-[#0a1628] shadow-2xl"
-        style={{ minHeight: '600px' }}
+        className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border border-slate-800/80 bg-[#0a1628] shadow-2xl"
       >
         <svg
           viewBox={`0 0 ${size.width} ${size.height}`}
