@@ -29,7 +29,7 @@ const POINTS = [
   { lat: 1.3, lng: 103.8, label: "Singapore", size: 0.4, color: "#00cc6a" },
 ];
 
-const fadeUp = {
+const fadeUp: any = {
   hidden: { opacity: 0, y: 20 },
   visible: (delay = 0) => ({
     opacity: 1,
