@@ -28,7 +28,7 @@ function App() {
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/dashboard" element={<HomePage />} />
+                <Route path="/home" element={<HomePage />} />
                 <Route path="/find-route" element={<FindRoutePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/routes" element={<DiscoverPage />} />

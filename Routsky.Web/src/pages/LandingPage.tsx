@@ -26,7 +26,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/dashboard", { replace: true });
+      navigate("/home", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -107,7 +107,7 @@ export default function LandingPage() {
           {/* CTA Buttons */}
           <motion.div variants={fadeUpVariants} className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/home")}
               className="group relative flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3.5 rounded-xl bg-white text-slate-950 font-semibold hover:bg-slate-200 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
             >
               <Zap size={18} className="text-blue-600 group-hover:scale-110 transition-transform" />
